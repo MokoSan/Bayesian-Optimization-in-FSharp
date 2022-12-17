@@ -7,17 +7,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Domain.fs" />
-    <Compile Include="ObjectiveFunctions.fs" />
-    <Compile Include="Kernel.fs" />
-    <Compile Include="Surrogate.fs" />
-    <Compile Include="AcquisitionFunctions.fs" />
-    <Compile Include="Model.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Optimization.Core\Optimization.Core.fsproj" />
   </ItemGroup>
 
 </Project>

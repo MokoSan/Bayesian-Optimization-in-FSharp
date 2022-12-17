@@ -5,8 +5,9 @@ namespace SimpleWorkload_1
 {
     class Program
     { 
-        private const int DEFAULT_SLEEP_MSEC = 500;
-        private const int FAST_SLEEP_MSEC    = 100;
+        private const int DEFAULT_SLEEP_MSEC    = 500;
+        private const int FAST_SLEEP_MSEC       = 100;
+        private const int FASTEST_SLEEP_MSEC    = 50;
 
         public class Options
         {
@@ -23,6 +24,12 @@ namespace SimpleWorkload_1
                     case double n when n >= 1.0 && n < 2.0:
                         {
                             Thread.Sleep(FAST_SLEEP_MSEC);
+                            break;
+                        }
+
+                    case double n when n >= 1.0 && n < 1.5:
+                        {
+                            Thread.Sleep(FASTEST_SLEEP_MSEC);
                             break;
                         }
 

@@ -52,7 +52,7 @@ let test_model_simpleworkload_1() : GaussianModel =
 
     let queryProcessInfo : QueryProcessInfo = { WorkloadPath = workload; ApplyArguments = (fun input -> $"--input {input}") } 
     let queryProcessObjectiveFunction : ObjectiveFunction = (QueryProcessByElapsedTimeInSeconds queryProcessInfo)
-    createModel gaussianProcess queryProcessObjectiveFunction 0 10 300 
+    createModel gaussianProcess queryProcessObjectiveFunction 0 5 300 
 
 let model = test_model_simpleworkload_1()
 let extrema = findOptima model Goal.Min 40

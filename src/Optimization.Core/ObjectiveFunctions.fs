@@ -18,6 +18,4 @@ let queryProcessByElapsedTimeInSeconds (queryProcessInfo : QueryProcessInfo) (in
     stopWatch.Stop()
 
     let result : double = double stopWatch.ElapsedMilliseconds / 1000.
-
-    printfn "%A -> %A" input result
     result
