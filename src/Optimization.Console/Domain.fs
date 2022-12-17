@@ -8,20 +8,31 @@ type Goal =
     | Max
     | Min
 
-type GaussianModel =
+type WorkloadPath   = string
+type ApplyArguments = string -> string
+
+type GaussianModel    =
     {
-        GaussianProcess : GaussianProcess 
-        Query           : double -> double
-        Inputs          : List<double> 
+        GaussianProcess   : GaussianProcess 
+        ObjectiveFunction : ObjectiveFunction 
+        Inputs            : double list
     }
-and GaussianProcess = 
+and GaussianProcess   = 
     { 
         SquaredExponentialKernelParameters : SquaredExponentialKernelParameters 
         DataPoints                         : List<DataPoint>
         mutable CovarianceMatrix           : Matrix<double>
     }
-and DataPoint       = { X : double; Y : double }
+and DataPoint         = { X : double; Y : double }
 and SquaredExponentialKernelParameters = { LengthScale : double; Variance : double }
+and ObjectiveFunction =
+    | QueryFunction                      of (double -> double)
+    | QueryProcessByElapsedTimeInSeconds of QueryProcessInfo
+and QueryProcessInfo  = 
+    {
+        WorkloadPath   : WorkloadPath
+        ApplyArguments : ApplyArguments
+    }
 
 type EstimationResult =
     { 

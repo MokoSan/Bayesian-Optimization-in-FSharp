@@ -4,6 +4,7 @@ open System.Linq
 open System.Collections.Generic
 open MathNet.Numerics.LinearAlgebra
 open AcquisitionFunctions
+open ObjectiveFunctions
 open Surrogate
 open Kernel
 open Domain
@@ -11,10 +12,18 @@ open Domain
 [<Literal>]
 let DEFAULT_EXPLORATION_PARAMETER : double = 0.01
 
-let addDataPointToModel (model : GaussianModel) (dataPoint : DataPoint) : unit =
+let addDataPointToModel (model : GaussianModel) (input : double) : unit =
 
     // TODO: Check if the model already contains the data point.
-    model.GaussianProcess.DataPoints.Add dataPoint
+
+    // Get the result from the objective function.
+    let result : double = 
+        match model.ObjectiveFunction with
+        | QueryFunction queryFunction                         -> queryFunction input
+        | QueryProcessByElapsedTimeInSeconds queryProcessInfo -> queryProcessByElapsedTimeInSeconds queryProcessInfo input
+
+    let dataPoint : DataPoint = { X = input; Y = result } 
+    model.GaussianProcess.DataPoints.Add dataPoint 
 
     let size                            : int = model.GaussianProcess.DataPoints.Count
     let mutable updatedCovarianceMatrix : Matrix<double> = Matrix<double>.Build.Dense(size, size)
@@ -33,36 +42,38 @@ let addDataPointToModel (model : GaussianModel) (dataPoint : DataPoint) : unit =
     model.GaussianProcess.CovarianceMatrix       <- updatedCovarianceMatrix
 
 
-let createModel (gaussianProcess  : GaussianProcess) 
-                (query            : double -> double) 
-                (min              : double) 
-                (max              : double)
-                (resolution       : int) : GaussianModel = 
+let createModel (gaussianProcess   : GaussianProcess) 
+                (objectiveFunction : ObjectiveFunction) 
+                (min               : double) 
+                (max               : double)
+                (resolution        : int) : GaussianModel = 
 
-    // Random Uniform Initialization of Inputs.
-    let inputs : List<double> = (seq { for i in 0 .. resolution do i }
-                                |> Seq.map(fun idx -> min + double idx * (max - min) / (double resolution - 1.))).ToList()
-    { GaussianProcess = gaussianProcess; Query = query; Inputs = inputs }
+    // Random Uniform Initialization of Inputs. This implies that we assigning a uniform distribution for our priors.
+    let inputs : double list = seq { for i in 0 .. resolution do i }
+                               |> Seq.map(fun idx -> min + double idx * (max - min) / (double resolution - 1.))
+                               |> Seq.toList
+
+    { GaussianProcess = gaussianProcess; ObjectiveFunction = objectiveFunction; Inputs = inputs }
 
 let findOptima (model : GaussianModel) (goal : Goal) (iterations : int) : ModelResult =
 
-    // Add the extreme points.
-    addDataPointToModel model { X = model.Inputs.[0]; Y = model.Query model.Inputs.[0] }
-    addDataPointToModel model { X = model.Inputs.Last(); Y = model.Query( model.Inputs.Last() )}
+    // Add the first and last points to the model to kick things off.
+    addDataPointToModel model model.Inputs.[0]
+    addDataPointToModel model (model.Inputs.Last())
 
-    for iterationIdx in 0..(iterations - 1) do
+    for _ in 0..(iterations - 1) do
 
-        // Select next point to sample.
+        // Select next point to sample via the surrogate function i.e. estimation of the objective that maximizes the acquisition function.
         let nextPointToSample : double = 
             let surrogateEstimations        : List<EstimationResult> = estimateAtRange model
             let maxAcquisition              : List<AcquisitionFunctionResult> = surrogateEstimations.Select(fun e -> (expectedImprovement model.GaussianProcess e goal DEFAULT_EXPLORATION_PARAMETER )).ToList() 
             let optimumValueFromAcquisition : AcquisitionFunctionResult = maxAcquisition.MaxBy(fun e -> e.Y)
             optimumValueFromAcquisition.X
 
-        // Add the point to the model.
+        // Add the point to the model if it already hasn't been added.
         if model.GaussianProcess.DataPoints.Any(fun d -> d.X = nextPointToSample) then ()
         else
-            addDataPointToModel model { X = nextPointToSample; Y = model.Query ( nextPointToSample )}
+            addDataPointToModel model nextPointToSample
 
     let estimationResult : List<EstimationResult> = estimateAtRange model
 
