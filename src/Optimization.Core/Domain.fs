@@ -37,11 +37,12 @@ and QueryProcessInfo  =
     }
 and QueryProcessInfoByTraceLog  = 
     {
-        WorkloadPath        : WorkloadPath
-        ApplyArguments      : ApplyArguments
-        TraceLogApplication : TraceLog -> double
-        TraceParameters     : string
-        OutputPath          : string
+        WorkloadPath         : WorkloadPath
+        ApplyArguments       : ApplyArguments
+        EnvironmentVariables : double -> Map<string, string>
+        TraceLogApplication  : TraceLog -> double
+        TraceParameters      : string
+        OutputPath           : string
     }
 
 type EstimationResult =
@@ -56,7 +57,7 @@ type AcquisitionFunctionResult = { Input : double; AcquisitionResult : double }
 
 type ModelResult = 
     { 
-        Input                    : IReadOnlyList<DataPoint>
+        ObservedDataPoints       : IReadOnlyList<DataPoint>
         AcquistionFunctionResult : IReadOnlyList<AcquisitionFunctionResult>
         EstimationResult         : IReadOnlyList<EstimationResult>
     }

@@ -21,6 +21,7 @@ let fitToModel (model : GaussianModel) (input : double) : unit =
         match model.ObjectiveFunction with
         | QueryContinuousFunction queryFunction               -> queryFunction input
         | QueryProcessByElapsedTimeInSeconds queryProcessInfo -> queryProcessByElapsedTimeInSeconds queryProcessInfo input
+        | QueryProcessByTraceLog queryProcessInfo             -> queryProcessByTraceLog queryProcessInfo input
 
     let dataPoint : DataPoint = { X = input; Y = result } 
     model.GaussianProcess.ObservedDataPoints.Add dataPoint 
@@ -77,7 +78,7 @@ let findOptima (model : GaussianModel) (goal : Goal) (iterations : int) : ModelR
     let estimationResult : List<EstimationResult> = estimateAtRange model
 
     {
-        Input                    = model.GaussianProcess.ObservedDataPoints
+        ObservedDataPoints       = model.GaussianProcess.ObservedDataPoints
         AcquistionFunctionResult = estimationResult.Select(fun e -> expectedImprovement model.GaussianProcess e goal DEFAULT_EXPLORATION_PARAMETER).ToList() 
         EstimationResult         = estimationResult
     }
