@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "SimpleWorkload_1": {
+      "commandName": "Project",
+      "commandLineArgs": "-i 5"
+    }
+  }
+}
