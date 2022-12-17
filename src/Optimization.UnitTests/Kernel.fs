@@ -1,4 +1,4 @@
-module Optimization.UnitTests
+module Optimization
 
 open NUnit.Framework
 open Kernel 
@@ -15,6 +15,7 @@ let ``Squared Exponential Kernel Computation When Left and Right Are Equal Shoul
     Assert.AreEqual(kernelCompute, variance)
 
 [<Test>]
+// TODO: Fix.
 let ``Squared Exponential Kernel Computation When Left and Right Are Not Equal Should Use The Squared Exponential Kernel Formula`` () =
     let parameters    : SquaredExponentialKernelParameters = { LengthScale = 0.1; Variance = 1. }
     let kernelCompute : double = squaredExponentialKernelCompute parameters 1 1

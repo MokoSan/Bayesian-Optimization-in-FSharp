@@ -21,15 +21,15 @@ namespace SimpleWorkload_1
             {
                 switch (o.Input)
                 {
-                    case double n when n >= 1.0 && n < 2.0:
-                        {
-                            Thread.Sleep(FAST_SLEEP_MSEC);
-                            break;
-                        }
-
                     case double n when n >= 1.0 && n < 1.5:
                         {
                             Thread.Sleep(FASTEST_SLEEP_MSEC);
+                            break;
+                        }
+
+                    case double n when n >= 1.5 && n < 2.0:
+                        {
+                            Thread.Sleep(FAST_SLEEP_MSEC);
                             break;
                         }
 

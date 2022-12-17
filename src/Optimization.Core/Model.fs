@@ -63,16 +63,16 @@ let findOptima (model : GaussianModel) (goal : Goal) (iterations : int) : ModelR
     for _ in 0..(iterations - 1) do
 
         // Select next point to sample via the surrogate function i.e. estimation of the objective that maximizes the acquisition function.
-        let nextPointToSample : double = 
+        let nextPoint : double = 
             let surrogateEstimations        : List<EstimationResult> = estimateAtRange model
-            let maxAcquisition              : List<AcquisitionFunctionResult> = surrogateEstimations.Select(fun e -> (expectedImprovement model.GaussianProcess e goal DEFAULT_EXPLORATION_PARAMETER )).ToList() 
-            let optimumValueFromAcquisition : AcquisitionFunctionResult = maxAcquisition.MaxBy(fun e -> e.Y)
-            optimumValueFromAcquisition.X
+            let acquisitionResults          : List<AcquisitionFunctionResult> = surrogateEstimations.Select(fun e -> (expectedImprovement model.GaussianProcess e goal DEFAULT_EXPLORATION_PARAMETER )).ToList() 
+            let optimumValueFromAcquisition : AcquisitionFunctionResult = acquisitionResults.MaxBy(fun e -> e.AcquisitionResult)
+            optimumValueFromAcquisition.Input
 
         // Add the point to the model if it already hasn't been added.
-        if model.GaussianProcess.ObservedDataPoints.Any(fun d -> d.X = nextPointToSample) then ()
+        if model.GaussianProcess.ObservedDataPoints.Any(fun d -> d.X = nextPoint) then ()
         else
-            fitToModel model nextPointToSample
+            fitToModel model nextPoint 
 
     let estimationResult : List<EstimationResult> = estimateAtRange model
 

@@ -5,7 +5,6 @@ open System.Collections.Generic
 open MathNet.Numerics.LinearAlgebra
 open MathNet.Numerics
 open System.Diagnostics
-open ObjectiveFunctions
 
 [<Literal>]
 let workload : string = @"C:\Users\mukun\source\repos\FSharpAdvent_2022\src\Workloads\SimpleWorkload_1\bin\Debug\net7.0\SimpleWorkload_1.exe"

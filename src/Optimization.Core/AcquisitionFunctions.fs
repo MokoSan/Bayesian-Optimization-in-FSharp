@@ -14,7 +14,7 @@ let expectedImprovement (gaussianProcess : GaussianProcess)
         | Goal.Max -> gaussianProcess.ObservedDataPoints.Max(fun l -> l.Y)
         | Goal.Min -> gaussianProcess.ObservedDataPoints.Min(fun l -> l.Y)
 
-    let baseResult : AcquisitionFunctionResult = { X = estimationResult.Input; Y = 0. }
+    let baseResult : AcquisitionFunctionResult = { Input = estimationResult.Input; AcquisitionResult = 0. }
 
     if gaussianProcess.ObservedDataPoints.Any(fun d -> d.X = estimationResult.Input) then baseResult 
     else
@@ -28,4 +28,4 @@ let expectedImprovement (gaussianProcess : GaussianProcess)
             let explorationFactor   : double  = sigma * Normal.PDF(0, 1, z)
             let expectedImprovement : double = exploitationFactor + explorationFactor
 
-            { X = estimationResult.Input; Y = Math.Max(expectedImprovement, 0)}
+            { Input = estimationResult.Input; AcquisitionResult = Math.Max(expectedImprovement, 0)}
