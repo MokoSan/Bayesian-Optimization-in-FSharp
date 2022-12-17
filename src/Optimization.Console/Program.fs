@@ -35,18 +35,18 @@ let test_model_sin() : GaussianModel =
     let gaussianProcess : GaussianProcess = 
         { 
             SquaredExponentialKernelParameters = { LengthScale = 0.1; Variance = 1 }
-            DataPoints       = List<DataPoint>()
-            CovarianceMatrix = Matrix<double>.Build.Dense(1, 1)
+            ObservedDataPoints                 = List<DataPoint>()
+            CovarianceMatrix                   = Matrix<double>.Build.Dense(1, 1)
         }
 
-    let sinObjectiveFunction : ObjectiveFunction = QueryFunction Trig.Sin
+    let sinObjectiveFunction : ObjectiveFunction = QueryContinuousFunction Trig.Sin
     createModel gaussianProcess sinObjectiveFunction -Math.PI Math.PI 300 
 
 let test_model_simpleworkload_1() : GaussianModel =
     let gaussianProcess : GaussianProcess = 
         { 
             SquaredExponentialKernelParameters = { LengthScale = 0.1; Variance = 1 }
-            DataPoints       = List<DataPoint>()
+            ObservedDataPoints       = List<DataPoint>()
             CovarianceMatrix = Matrix<double>.Build.Dense(1, 1)
         }
 

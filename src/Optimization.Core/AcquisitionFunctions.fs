@@ -11,12 +11,12 @@ let expectedImprovement (gaussianProcess : GaussianProcess)
 
     let optimumValue : double =
         match goal with 
-        | Goal.Max -> gaussianProcess.DataPoints.Max(fun l -> l.Y)
-        | Goal.Min -> gaussianProcess.DataPoints.Min(fun l -> l.Y)
+        | Goal.Max -> gaussianProcess.ObservedDataPoints.Max(fun l -> l.Y)
+        | Goal.Min -> gaussianProcess.ObservedDataPoints.Min(fun l -> l.Y)
 
     let baseResult : AcquisitionFunctionResult = { X = estimationResult.Input; Y = 0. }
 
-    if gaussianProcess.DataPoints.Any(fun d -> d.X = estimationResult.Input) then baseResult 
+    if gaussianProcess.ObservedDataPoints.Any(fun d -> d.X = estimationResult.Input) then baseResult 
     else
         let delta : double = estimationResult.Mean - optimumValue - explorationParameter
         // TODO: Fix. Should I actually be computing the sigma??

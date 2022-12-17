@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Optimization.Console\Optimization.Console.fsproj" />
+    <ProjectReference Include="..\Optimization.Core\Optimization.Core.fsproj" />
   </ItemGroup>
 
 </Project>

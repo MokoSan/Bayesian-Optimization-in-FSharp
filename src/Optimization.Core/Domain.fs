@@ -20,13 +20,13 @@ type GaussianModel    =
 and GaussianProcess   = 
     { 
         SquaredExponentialKernelParameters : SquaredExponentialKernelParameters 
-        DataPoints                         : List<DataPoint>
+        ObservedDataPoints                 : List<DataPoint>
         mutable CovarianceMatrix           : Matrix<double>
     }
 and DataPoint         = { X : double; Y : double }
 and SquaredExponentialKernelParameters = { LengthScale : double; Variance : double }
 and ObjectiveFunction =
-    | QueryFunction                      of (double -> double)
+    | QueryContinuousFunction            of (double -> double)
     | QueryProcessByElapsedTimeInSeconds of QueryProcessInfo
 and QueryProcessInfo  = 
     {
@@ -46,7 +46,7 @@ type AcquisitionFunctionResult = { X : double; Y : double }
 
 type ModelResult = 
     { 
-        Input                    : List<DataPoint>
-        AcquistionFunctionResult : List<AcquisitionFunctionResult>
-        EstimationResult         : List<EstimationResult>
+        Input                    : IReadOnlyList<DataPoint>
+        AcquistionFunctionResult : IReadOnlyList<AcquisitionFunctionResult>
+        EstimationResult         : IReadOnlyList<EstimationResult>
     }

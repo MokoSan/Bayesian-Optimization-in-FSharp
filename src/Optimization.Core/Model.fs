@@ -12,20 +12,20 @@ open Domain
 [<Literal>]
 let DEFAULT_EXPLORATION_PARAMETER : double = 0.01
 
-let addDataPointToModel (model : GaussianModel) (input : double) : unit =
+let fitToModel (model : GaussianModel) (input : double) : unit =
 
     // TODO: Check if the model already contains the data point.
 
     // Get the result from the objective function.
     let result : double = 
         match model.ObjectiveFunction with
-        | QueryFunction queryFunction                         -> queryFunction input
+        | QueryContinuousFunction queryFunction               -> queryFunction input
         | QueryProcessByElapsedTimeInSeconds queryProcessInfo -> queryProcessByElapsedTimeInSeconds queryProcessInfo input
 
     let dataPoint : DataPoint = { X = input; Y = result } 
-    model.GaussianProcess.DataPoints.Add dataPoint 
+    model.GaussianProcess.ObservedDataPoints.Add dataPoint 
 
-    let size                            : int = model.GaussianProcess.DataPoints.Count
+    let size                            : int = model.GaussianProcess.ObservedDataPoints.Count
     let mutable updatedCovarianceMatrix : Matrix<double> = Matrix<double>.Build.Dense(size, size)
 
     for rowIdx in 0..(model.GaussianProcess.CovarianceMatrix.RowCount - 1) do
@@ -33,14 +33,13 @@ let addDataPointToModel (model : GaussianModel) (input : double) : unit =
             updatedCovarianceMatrix[rowIdx, columnIdx] <- model.GaussianProcess.CovarianceMatrix.[rowIdx, columnIdx]
 
     for iteratorIdx in 0..(size - 1) do
-        let modelValueAtIndex : double = model.GaussianProcess.DataPoints.[iteratorIdx].X
+        let modelValueAtIndex : double = model.GaussianProcess.ObservedDataPoints.[iteratorIdx].X
         let value             : double = squaredExponentialKernelCompute model.GaussianProcess.SquaredExponentialKernelParameters modelValueAtIndex dataPoint.X 
         updatedCovarianceMatrix[iteratorIdx, size - 1] <- value
         updatedCovarianceMatrix[size - 1, iteratorIdx] <- value
 
     updatedCovarianceMatrix[size - 1,  size - 1] <- squaredExponentialKernelCompute model.GaussianProcess.SquaredExponentialKernelParameters dataPoint.X dataPoint.X
     model.GaussianProcess.CovarianceMatrix       <- updatedCovarianceMatrix
-
 
 let createModel (gaussianProcess   : GaussianProcess) 
                 (objectiveFunction : ObjectiveFunction) 
@@ -58,8 +57,8 @@ let createModel (gaussianProcess   : GaussianProcess)
 let findOptima (model : GaussianModel) (goal : Goal) (iterations : int) : ModelResult =
 
     // Add the first and last points to the model to kick things off.
-    addDataPointToModel model model.Inputs.[0]
-    addDataPointToModel model (model.Inputs.Last())
+    fitToModel model model.Inputs.[0]
+    fitToModel model (model.Inputs.Last())
 
     for _ in 0..(iterations - 1) do
 
@@ -71,14 +70,14 @@ let findOptima (model : GaussianModel) (goal : Goal) (iterations : int) : ModelR
             optimumValueFromAcquisition.X
 
         // Add the point to the model if it already hasn't been added.
-        if model.GaussianProcess.DataPoints.Any(fun d -> d.X = nextPointToSample) then ()
+        if model.GaussianProcess.ObservedDataPoints.Any(fun d -> d.X = nextPointToSample) then ()
         else
-            addDataPointToModel model nextPointToSample
+            fitToModel model nextPointToSample
 
     let estimationResult : List<EstimationResult> = estimateAtRange model
 
     {
-        Input                    = model.GaussianProcess.DataPoints
+        Input                    = model.GaussianProcess.ObservedDataPoints
         AcquistionFunctionResult = estimationResult.Select(fun e -> expectedImprovement model.GaussianProcess e goal DEFAULT_EXPLORATION_PARAMETER).ToList() 
         EstimationResult         = estimationResult
     }

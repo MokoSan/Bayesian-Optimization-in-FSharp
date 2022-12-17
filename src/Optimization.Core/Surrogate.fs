@@ -7,16 +7,16 @@ open System
 open Kernel
 
 // TODO: Comment and clean.
-let estimateAtRange (model: GaussianModel) : List<EstimationResult> = 
+let estimateAtRange (model: GaussianModel) : List<EstimationResult> =
     let estimateAtPoint (gaussianProcess : GaussianProcess) (input : double) : EstimationResult = 
 
         let kStar : double[] =
-            gaussianProcess.DataPoints
+            gaussianProcess.ObservedDataPoints
                            .Select(fun dp -> squaredExponentialKernelCompute gaussianProcess.SquaredExponentialKernelParameters input dp.X)
                            .ToArray()
 
         let yTrain : double[] =
-            gaussianProcess.DataPoints
+            gaussianProcess.ObservedDataPoints
                            .Select(fun dp -> dp.Y)
                            .ToArray()
 
