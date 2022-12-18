@@ -91,6 +91,6 @@ let test_model_burstyallocator() : GaussianModel =
     let queryProcessObjectiveFunction : ObjectiveFunction = QueryProcessByTraceLog queryProcessByTraceLog
     createModelDiscrete gaussianProcess queryProcessObjectiveFunction 1 System.Environment.ProcessorCount 300
 
-let model = test_model_burstyallocator()
-let extrema = findOptima model Goal.Min 20 
+let model   : GaussianModel = test_model_burstyallocator()
+let extrema : ModelResult   = findOptima model Goal.Min 20 
 printfn "%A" ( extrema.ObservedDataPoints.MinBy(fun e -> e.Y ))
