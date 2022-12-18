@@ -39,7 +39,7 @@ let query_trace (input : double) : double =
 let test_model_sin() : GaussianModel =
     let gaussianProcess : GaussianProcess = 
         { 
-            SquaredExponentialKernelParameters = { LengthScale = 0.1; Variance = 1 }
+            KernelFunction = SquaredExponentialKernel { LengthScale = 0.1; Variance = 1 }
             ObservedDataPoints                 = List<DataPoint>()
             CovarianceMatrix                   = Matrix<double>.Build.Dense(1, 1)
         }
@@ -50,7 +50,7 @@ let test_model_sin() : GaussianModel =
 let test_model_simpleworkload_1() : GaussianModel =
     let gaussianProcess : GaussianProcess = 
         { 
-            SquaredExponentialKernelParameters = { LengthScale = 0.1; Variance = 1 }
+            KernelFunction = SquaredExponentialKernel { LengthScale = 0.1; Variance = 1 }
             ObservedDataPoints       = List<DataPoint>()
             CovarianceMatrix = Matrix<double>.Build.Dense(1, 1)
         }
@@ -62,7 +62,7 @@ let test_model_simpleworkload_1() : GaussianModel =
 let test_model_burstyallocator() : GaussianModel =
     let gaussianProcess : GaussianProcess = 
         { 
-            SquaredExponentialKernelParameters = { LengthScale = 0.1; Variance = 1 }
+            KernelFunction = SquaredExponentialKernel { LengthScale = 0.1; Variance = 1 }
             ObservedDataPoints       = List<DataPoint>()
             CovarianceMatrix = Matrix<double>.Build.Dense(1, 1)
         }
@@ -71,7 +71,7 @@ let test_model_burstyallocator() : GaussianModel =
         { 
             WorkloadPath = highMemory_BurstyAllocator 
             ApplyArguments = (fun input -> "") 
-            EnvironmentVariables = (fun input -> [("COMPlus_GCHeapCount", ( (int ( Math.Round(input))).ToString("X") )); ("COMPlus_GCServer", "1")] |> Map.ofList)
+            ApplyEnvironmentVariables = (fun input -> [("COMPlus_GCHeapCount", ( (int ( Math.Round(input))).ToString("X") )); ("COMPlus_GCServer", "1")] |> Map.ofList)
             TraceLogApplication = (fun (traceLog : Microsoft.Diagnostics.Tracing.Etlx.TraceLog) ->
 
                 let eventSource : Microsoft.Diagnostics.Tracing.Etlx.TraceLogEventSource = traceLog.Events.GetSource()

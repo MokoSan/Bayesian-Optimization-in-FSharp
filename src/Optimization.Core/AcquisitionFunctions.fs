@@ -19,7 +19,6 @@ let expectedImprovement (gaussianProcess : GaussianProcess)
     if gaussianProcess.ObservedDataPoints.Any(fun d -> d.X = estimationResult.Input) then baseResult 
     else
         let delta : double = estimationResult.Mean - optimumValue - explorationParameter
-        // TODO: Fix. Should I actually be computing the sigma??
         let sigma : double = estimationResult.UpperBound - estimationResult.LowerBound
         if sigma = 0 then baseResult
         else 
@@ -28,4 +27,4 @@ let expectedImprovement (gaussianProcess : GaussianProcess)
             let explorationFactor   : double  = sigma * Normal.PDF(0, 1, z)
             let expectedImprovement : double = exploitationFactor + explorationFactor
 
-            { Input = estimationResult.Input; AcquisitionResult = Math.Max(expectedImprovement, 0)}
+            { Input = estimationResult.Input; AcquisitionResult = Math.Max(expectedImprovement, 0) }

@@ -24,7 +24,6 @@ let queryProcessByElapsedTimeInSeconds (queryProcessInfo : QueryProcessInfo) (in
     let result : double = double stopWatch.ElapsedMilliseconds / 1000.
     result
 
-// TODO: Discretize.
 let queryProcessByTraceLog (queryProcessInfoByTraceLog : QueryProcessInfoByTraceLog) (input : double) : double =
 
     // Start the trace collection process with the appropriate parameters.
@@ -34,7 +33,7 @@ let queryProcessByTraceLog (queryProcessInfoByTraceLog : QueryProcessInfoByTrace
     unstartedProcess.StartInfo.UseShellExecute <- false
     unstartedProcess.StartInfo.Arguments       <- queryProcessInfoByTraceLog.ApplyArguments ( input.ToString() )
 
-    let environmentVariables : Map<string, string> = queryProcessInfoByTraceLog.EnvironmentVariables(int input)
+    let environmentVariables : Map<string, string> = queryProcessInfoByTraceLog.ApplyEnvironmentVariables(int input)
     environmentVariables
     |> Map.iter(fun k v -> unstartedProcess.StartInfo.EnvironmentVariables.[k] <- v )
     |> ignore
@@ -54,13 +53,9 @@ let queryProcessByTraceLog (queryProcessInfoByTraceLog : QueryProcessInfoByTrace
     startProcess.Dispose()       |> ignore
 
     let mutable tracePathFinal = etlPath + ".zip"
-
-    if Path.GetExtension(tracePathFinal) = ".zip" then 
-        let zippedReader = ZippedETLReader(tracePathFinal);
-        zippedReader.UnpackArchive();
-        tracePathFinal <- zippedReader.EtlFileName;
-        ()
-    else ()
+    let zippedReader = ZippedETLReader(tracePathFinal);
+    zippedReader.UnpackArchive();
+    tracePathFinal <- zippedReader.EtlFileName;
 
     let traceLog = Microsoft.Diagnostics.Tracing.Etlx.TraceLog.OpenOrConvert(tracePathFinal);
 

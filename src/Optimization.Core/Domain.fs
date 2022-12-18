@@ -9,18 +9,23 @@ type Goal =
     | Max
     | Min
 
+// Helper Types.
 type WorkloadPath   = string
 type ApplyArguments = string -> string
+type LengthScale    = double
+// TODO: Add constrain to make this non-negative.
+type Variance       = double
 
 type GaussianModel    =
     {
-        GaussianProcess   : GaussianProcess 
-        ObjectiveFunction : ObjectiveFunction 
+        GaussianProcess   : GaussianProcess
+        ObjectiveFunction : ObjectiveFunction
         Inputs            : double list
     }
 and GaussianProcess   = 
     { 
-        SquaredExponentialKernelParameters : SquaredExponentialKernelParameters 
+        KernelFunction                     : KernelFunction
+        // TODO: Create a separate abstraction handling the min, max, updation and access of this. 
         ObservedDataPoints                 : List<DataPoint>
         mutable CovarianceMatrix           : Matrix<double>
     }
@@ -37,14 +42,16 @@ and QueryProcessInfo  =
     }
 and QueryProcessInfoByTraceLog  = 
     {
-        WorkloadPath         : WorkloadPath
-        ApplyArguments       : ApplyArguments
-        EnvironmentVariables : double -> Map<string, string>
-        TraceLogApplication  : TraceLog -> double
-        TraceParameters      : string
-        OutputPath           : string
+        WorkloadPath              : WorkloadPath
+        ApplyArguments            : ApplyArguments
+        ApplyEnvironmentVariables : double -> Map<string, string>
+        TraceLogApplication       : TraceLog -> double
+        TraceParameters           : string
+        OutputPath                : string
     }
-
+and KernelFunction =
+    | SquaredExponentialKernel of SquaredExponentialKernelParameters
+    
 type EstimationResult =
     { 
         Mean       : double

@@ -10,9 +10,11 @@ open Kernel
 let predict (model: GaussianModel) : IEnumerable<EstimationResult> =
     let predictPoint (gaussianProcess : GaussianProcess) (input : double) : EstimationResult = 
 
+        let matchedKernelFunction : (double -> double -> double) = getKernelFunction model
+
         let kStar : double[] =
             gaussianProcess.ObservedDataPoints
-                           .Select(fun dp -> squaredExponentialKernelCompute gaussianProcess.SquaredExponentialKernelParameters input dp.X)
+                           .Select(fun dp -> matchedKernelFunction input dp.X)
                            .ToArray()
 
         let yTrain : double[] =
@@ -22,9 +24,12 @@ let predict (model: GaussianModel) : IEnumerable<EstimationResult> =
 
         let ks         : Vector<double> = Vector<double>.Build.Dense kStar
         let f          : Vector<double> = Vector<double>.Build.Dense yTrain
+
+        // Common helper term. 
         let common     : Vector<double> = gaussianProcess.CovarianceMatrix.Inverse().Multiply ks
+        // muStar = Kstar^T * K^-1 * f = common dot f
         let mu         : double         = common.DotProduct f
-        let confidence : double         = Math.Abs(-common.DotProduct(ks) + squaredExponentialKernelCompute gaussianProcess.SquaredExponentialKernelParameters input input )
+        let confidence : double         = Math.Abs( matchedKernelFunction input input  - common.DotProduct(ks) )
 
         { Mean = mu; LowerBound = mu - confidence; UpperBound = mu + confidence; Input = input }
 

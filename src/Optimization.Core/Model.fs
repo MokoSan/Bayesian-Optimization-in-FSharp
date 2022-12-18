@@ -24,6 +24,8 @@ let fitToModel (model : GaussianModel) (input : double) : unit =
             | QueryProcessByElapsedTimeInSeconds queryProcessInfo -> queryProcessByElapsedTimeInSeconds queryProcessInfo input
             | QueryProcessByTraceLog queryProcessInfo             -> queryProcessByTraceLog queryProcessInfo input
 
+        let matchedKernel : double -> double -> double = getKernelFunction model
+
         let dataPoint : DataPoint = { X = input; Y = result } 
         model.GaussianProcess.ObservedDataPoints.Add dataPoint 
 
@@ -36,11 +38,11 @@ let fitToModel (model : GaussianModel) (input : double) : unit =
 
         for iteratorIdx in 0..(size - 1) do
             let modelValueAtIndex : double = model.GaussianProcess.ObservedDataPoints.[iteratorIdx].X
-            let value             : double = squaredExponentialKernelCompute model.GaussianProcess.SquaredExponentialKernelParameters modelValueAtIndex dataPoint.X 
+            let value             : double = matchedKernel modelValueAtIndex dataPoint.X 
             updatedCovarianceMatrix[iteratorIdx, size - 1] <- value
             updatedCovarianceMatrix[size - 1, iteratorIdx] <- value
 
-        updatedCovarianceMatrix[size - 1,  size - 1] <- squaredExponentialKernelCompute model.GaussianProcess.SquaredExponentialKernelParameters dataPoint.X dataPoint.X
+        updatedCovarianceMatrix[size - 1,  size - 1] <- matchedKernel dataPoint.X dataPoint.X
         model.GaussianProcess.CovarianceMatrix       <- updatedCovarianceMatrix
 
 let createModelDiscrete (gaussianProcess   : GaussianProcess)
