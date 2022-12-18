@@ -82,7 +82,7 @@ let findOptima (model : GaussianModel) (goal : Goal) (iterations : int) : ModelR
         let nextPoint : double = 
             let surrogateEstimations        : IEnumerable<EstimationResult> = predict model
             let acquisitionResults          : IEnumerable<AcquisitionFunctionResult> = surrogateEstimations.Select(fun e -> (expectedImprovement model.GaussianProcess e goal DEFAULT_EXPLORATION_PARAMETER ))
-            let optimumValueFromAcquisition : AcquisitionFunctionResult = acquisitionResults.MaxBy(fun e -> e.AcquisitionResult)
+            let optimumValueFromAcquisition : AcquisitionFunctionResult = acquisitionResults.MaxBy(fun e -> e.AcquisitionScore)
             optimumValueFromAcquisition.Input
 
         // Add the point to the model if it already hasn't been added.

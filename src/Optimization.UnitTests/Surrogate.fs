@@ -1,4 +1,4 @@
-﻿module Optimization.UnitTests
+﻿module Surrogate 
 
 open NUnit.Framework
 open Kernel 

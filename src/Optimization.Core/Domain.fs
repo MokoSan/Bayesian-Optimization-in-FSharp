@@ -18,9 +18,9 @@ type Variance       = double
 
 type GaussianModel    =
     {
-        GaussianProcess   : GaussianProcess
-        ObjectiveFunction : ObjectiveFunction
-        Inputs            : double list
+        GaussianProcess     : GaussianProcess
+        ObjectiveFunction   : ObjectiveFunction
+        Inputs              : double list
     }
 and GaussianProcess   = 
     { 
@@ -29,8 +29,10 @@ and GaussianProcess   =
         ObservedDataPoints                 : List<DataPoint>
         mutable CovarianceMatrix           : Matrix<double>
     }
-and DataPoint         = { X : double; Y : double }
+and KernelFunction =
+    | SquaredExponentialKernel of SquaredExponentialKernelParameters
 and SquaredExponentialKernelParameters = { LengthScale : double; Variance : double }
+and DataPoint         = { X : double; Y : double }
 and ObjectiveFunction =
     | QueryContinuousFunction            of (double -> double)
     | QueryProcessByElapsedTimeInSeconds of QueryProcessInfo
@@ -49,18 +51,16 @@ and QueryProcessInfoByTraceLog  =
         TraceParameters           : string
         OutputPath                : string
     }
-and KernelFunction =
-    | SquaredExponentialKernel of SquaredExponentialKernelParameters
     
 type EstimationResult =
     { 
+        Input      : double
         Mean       : double
         LowerBound : double
         UpperBound : double
-        Input      : double
     }
 
-type AcquisitionFunctionResult = { Input : double; AcquisitionResult : double }
+type AcquisitionFunctionResult = { Input : double; AcquisitionScore: double }
 
 type ModelResult = 
     { 
