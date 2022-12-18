@@ -16,5 +16,3 @@ for (int repeatIdx = 0; repeatIdx < REPEAT_COUNT; repeatIdx++)
         }
     }
 }
-
-Console.WriteLine("Done with the allocator.");

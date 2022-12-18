@@ -7,8 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="make_memory_load.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <Compile Include="Program.fs" />
   </ItemGroup>
+
+  <ItemGroup />
 
   <ItemGroup>
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />

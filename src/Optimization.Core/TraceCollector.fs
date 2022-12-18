@@ -21,7 +21,7 @@ let startTrace (traceParameters : string) (path : string) : string * Process =
 
     let sessionId : string = Guid.NewGuid().ToString()
     let logPath   : string = path + ".log"
-    let command   : string = $"start {traceParameters} /NoGUI  /AcceptEULA /Merge:true /DataFile:{path} /LogFile:{logPath}"
+    let command   : string = $"start {traceParameters} /NoGUI /AcceptEULA /Merge:true /DataFile:{path} /LogFile:{logPath}"
 
     use startProcess : Process = new Process()
     startProcess.StartInfo.FileName  <- perfViewPath

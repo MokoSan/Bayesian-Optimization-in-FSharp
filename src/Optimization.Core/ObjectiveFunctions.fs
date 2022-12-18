@@ -24,6 +24,7 @@ let queryProcessByElapsedTimeInSeconds (queryProcessInfo : QueryProcessInfo) (in
     let result : double = double stopWatch.ElapsedMilliseconds / 1000.
     result
 
+// TODO: Discretize.
 let queryProcessByTraceLog (queryProcessInfoByTraceLog : QueryProcessInfoByTraceLog) (input : double) : double =
 
     // Start the trace collection process with the appropriate parameters.
@@ -33,12 +34,17 @@ let queryProcessByTraceLog (queryProcessInfoByTraceLog : QueryProcessInfoByTrace
     unstartedProcess.StartInfo.UseShellExecute <- false
     unstartedProcess.StartInfo.Arguments       <- queryProcessInfoByTraceLog.ApplyArguments ( input.ToString() )
 
+    let environmentVariables : Map<string, string> = queryProcessInfoByTraceLog.EnvironmentVariables(int input)
+    environmentVariables
+    |> Map.iter(fun k v -> unstartedProcess.StartInfo.EnvironmentVariables.[k] <- v )
+    |> ignore
+
     if System.IO.Directory.Exists queryProcessInfoByTraceLog.OutputPath then ()
     else 
         System.IO.Directory.CreateDirectory(queryProcessInfoByTraceLog.OutputPath) |> ignore
         ()
 
-    let etlPath = Path.Combine(queryProcessInfoByTraceLog.OutputPath, $"{int (input)}.etl")
+    let etlPath = Path.Combine(queryProcessInfoByTraceLog.OutputPath, $"{input}.etl")
     let (startTraceCommand, startProcess) : string * Process = startTrace queryProcessInfoByTraceLog.TraceParameters etlPath 
 
     unstartedProcess.Start()       |> ignore

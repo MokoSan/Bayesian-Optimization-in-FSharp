@@ -7,8 +7,8 @@ open System
 open Kernel
 
 // TODO: Comment and clean.
-let estimateAtRange (model: GaussianModel) : List<EstimationResult> =
-    let estimateAtPoint (gaussianProcess : GaussianProcess) (input : double) : EstimationResult = 
+let predict (model: GaussianModel) : IEnumerable<EstimationResult> =
+    let predictPoint (gaussianProcess : GaussianProcess) (input : double) : EstimationResult = 
 
         let kStar : double[] =
             gaussianProcess.ObservedDataPoints
@@ -28,4 +28,4 @@ let estimateAtRange (model: GaussianModel) : List<EstimationResult> =
 
         { Mean = mu; LowerBound = mu - confidence; UpperBound = mu + confidence; Input = input }
 
-    model.Inputs.Select(fun x -> estimateAtPoint model.GaussianProcess x).ToList()
+    model.Inputs.Select(fun x -> predictPoint model.GaussianProcess x)

@@ -7,12 +7,13 @@ open Microsoft.Diagnostics.Tracing.Analysis
 open MathNet.Numerics
 open System.Diagnostics
 
-
+// Test paths.
 [<Literal>]
 let workload : string = @"C:\Users\mukun\source\repos\FSharpAdvent_2022\src\Workloads\SimpleWorkload_1\bin\Debug\net7.0\SimpleWorkload_1.exe"
-
 [<Literal>]
-let burstyAllocator : string = @"C:\Users\mukun\source\repos\FSharpAdvent_2022\src\Workloads\BurstyAllocator\bin\Debug\net6.0\BurstyAllocator.exe"
+let burstyAllocator : string = @"C:\Users\mukun\source\repos\FSharpAdvent_2022\src\Workloads\BurstyAllocator\bin\Release\net6.0\BurstyAllocator.exe"
+[<Literal>]
+let highMemory_BurstyAllocator : string = @"C:\Users\mukun\source\repos\FSharpAdvent_2022\src\Workloads\HighMemory_BurstyAllocations\bin\Release\net6.0\HighMemory_BurstyAllocations.exe"
 
 let query_trace (input : double) : double = 
 
@@ -68,27 +69,28 @@ let test_model_burstyallocator() : GaussianModel =
 
     let queryProcessByTraceLog : QueryProcessInfoByTraceLog = 
         { 
-            WorkloadPath = burstyAllocator 
+            WorkloadPath = highMemory_BurstyAllocator 
             ApplyArguments = (fun input -> "") 
-            EnvironmentVariables = (fun input -> [("COMPlus_GCHeapCount", (int input).ToString() )] |> Map.ofList) 
+            EnvironmentVariables = (fun input -> [("COMPlus_GCHeapCount", ( (int ( Math.Round(input))).ToString("X") )); ("COMPlus_GCServer", "1")] |> Map.ofList)
             TraceLogApplication = (fun (traceLog : Microsoft.Diagnostics.Tracing.Etlx.TraceLog) ->
 
-                let eventSource = traceLog.Events.GetSource()
+                let eventSource : Microsoft.Diagnostics.Tracing.Etlx.TraceLogEventSource = traceLog.Events.GetSource()
 
                 eventSource.NeedLoadedDotNetRuntimes() |> ignore
                 eventSource.Process()                  |> ignore
 
-                let burstyAllocator = eventSource.Processes() |> Seq.find(fun p -> p.Name.Contains "BurstyAllocator")
-                let managedProcess : TraceLoadedDotNetRuntime = burstyAllocator.LoadedDotNetRuntime()
-                managedProcess.GC.Stats().MeanPauseDurationMSec
+                let burstyAllocatorProcess : TraceProcess = eventSource.Processes() |> Seq.find(fun p -> p.Name.Contains "BurstyAllocations")
+                let managedProcess         : TraceLoadedDotNetRuntime = burstyAllocatorProcess.LoadedDotNetRuntime()
+                managedProcess.GC.Stats().GetGCPauseTimePercentage()
             )
+
             TraceParameters = "/GCCollectOnly"
             OutputPath = "./Result"
-        } 
+        }
 
     let queryProcessObjectiveFunction : ObjectiveFunction = QueryProcessByTraceLog queryProcessByTraceLog
-    createModel gaussianProcess queryProcessObjectiveFunction 1 5 300 
+    createModelDiscrete gaussianProcess queryProcessObjectiveFunction 1 System.Environment.ProcessorCount 300
 
 let model = test_model_burstyallocator()
-let extrema = findOptima model Goal.Min 10 
+let extrema = findOptima model Goal.Min 5
 printfn "%A" ( extrema.ObservedDataPoints.MinBy(fun e -> e.Y ))
