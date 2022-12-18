@@ -5,7 +5,7 @@ open System.Linq
 open MathNet.Numerics.Distributions
 
 let expectedImprovement (gaussianProcess : GaussianProcess) 
-                        (estimationResult : EstimationResult) 
+                        (estimationResult : PredictionResult) 
                         (goal : Goal) 
                         (explorationParameter : double) : AcquisitionFunctionResult =
 

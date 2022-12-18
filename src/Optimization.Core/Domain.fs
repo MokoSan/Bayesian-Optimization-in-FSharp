@@ -29,7 +29,7 @@ and GaussianProcess   =
         ObservedDataPoints                 : List<DataPoint>
         mutable CovarianceMatrix           : Matrix<double>
     }
-and KernelFunction =
+and KernelFunction    =
     | SquaredExponentialKernel of SquaredExponentialKernelParameters
 and SquaredExponentialKernelParameters = { LengthScale : double; Variance : double }
 and DataPoint         = { X : double; Y : double }
@@ -46,25 +46,23 @@ and QueryProcessInfoByTraceLog  =
     {
         WorkloadPath              : WorkloadPath
         ApplyArguments            : ApplyArguments
-        ApplyEnvironmentVariables : double -> Map<string, string>
+        ApplyEnvironmentVariables : double   -> Map<string, string>
         TraceLogApplication       : TraceLog -> double
         TraceParameters           : string
         OutputPath                : string
     }
     
-type EstimationResult =
+type ModelResult = 
+    { 
+        ObservedDataPoints : IReadOnlyList<DataPoint>
+        AcquisitionResults : IReadOnlyList<AcquisitionFunctionResult>
+        PredictionResults  : IReadOnlyList<PredictionResult>
+    }
+and AcquisitionFunctionResult = { Input : double; AcquisitionScore: double }
+and PredictionResult =
     { 
         Input      : double
         Mean       : double
         LowerBound : double
         UpperBound : double
-    }
-
-type AcquisitionFunctionResult = { Input : double; AcquisitionScore: double }
-
-type ModelResult = 
-    { 
-        ObservedDataPoints       : IReadOnlyList<DataPoint>
-        AcquistionFunctionResult : IReadOnlyList<AcquisitionFunctionResult>
-        EstimationResult         : IReadOnlyList<EstimationResult>
     }

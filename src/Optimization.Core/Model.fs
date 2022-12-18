@@ -2,7 +2,6 @@
 
 open System
 open System.Linq
-open System.Collections.Generic
 open MathNet.Numerics.LinearAlgebra
 open AcquisitionFunctions
 open ObjectiveFunctions
@@ -72,34 +71,38 @@ let createModel (gaussianProcess   : GaussianProcess)
 
 let explore (model : GaussianModel) (goal : Goal) (iterations : int) : ModelResult =
 
+    let applyFitToModel : (double -> unit) = fitToModel model
+        
     // Add the first and last points to the model to kick things off.
-    fitToModel model model.Inputs.[0]
-    fitToModel model (model.Inputs.Last())
+    applyFitToModel model.Inputs.[0] 
+    applyFitToModel (model.Inputs.Last())
 
-    for _ in 0..(iterations - 1) do
+    seq { 0..(iterations - 1) }
+    |> Seq.iter(fun _ -> (
 
         // Select next point to sample via the surrogate function i.e. estimation of the objective that maximizes the acquisition function.
         let nextPoint : double = 
-            let predictions                 : IEnumerable<EstimationResult> = predict model
-            let acquisitionResults          : IEnumerable<AcquisitionFunctionResult> = predictions.Select(fun e -> (expectedImprovement model.GaussianProcess e goal DEFAULT_EXPLORATION_PARAMETER ))
+            let predictions                 : PredictionResult seq = predict model
+            let acquisitionResults          : AcquisitionFunctionResult seq = predictions.Select(fun e -> (expectedImprovement model.GaussianProcess e goal DEFAULT_EXPLORATION_PARAMETER ))
             let optimumValueFromAcquisition : AcquisitionFunctionResult = acquisitionResults.MaxBy(fun e -> e.AcquisitionScore)
             optimumValueFromAcquisition.Input
 
         // Add the point to the model if it already hasn't been added.
         if model.GaussianProcess.ObservedDataPoints.Any(fun d -> d.X = nextPoint) then ()
         else
-            fitToModel model nextPoint 
+            applyFitToModel nextPoint
+    ))
 
-    let estimationResult : IEnumerable<EstimationResult> = predict model
+    let estimationResult : PredictionResult seq = predict model
 
     {
         ObservedDataPoints       = model.GaussianProcess.ObservedDataPoints
-        AcquistionFunctionResult = estimationResult.Select(fun e -> expectedImprovement model.GaussianProcess e goal DEFAULT_EXPLORATION_PARAMETER).ToList() 
-        EstimationResult         = estimationResult.ToList()
+        AcquisitionResults = estimationResult.Select(fun e -> expectedImprovement model.GaussianProcess e goal DEFAULT_EXPLORATION_PARAMETER).ToList()
+        PredictionResults         = estimationResult.ToList()
     }
 
 let findOptima (model : GaussianModel) (goal : Goal) (iterations : int) : DataPoint = 
     let explorationResults : ModelResult = explore model goal iterations
     match goal with
-    | Goal.Max -> explorationResults.ObservedDataPoints.MaxBy(fun o -> o.Y )
-    | Goal.Min -> explorationResults.ObservedDataPoints.MinBy(fun o -> o.Y )
+    | Goal.Max -> explorationResults.ObservedDataPoints.MaxBy(fun o -> o.Y)
+    | Goal.Min -> explorationResults.ObservedDataPoints.MinBy(fun o -> o.Y)

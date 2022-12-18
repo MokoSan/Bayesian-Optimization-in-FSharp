@@ -5,6 +5,7 @@ open MathNet.Numerics.LinearAlgebra
 open Microsoft.Diagnostics.Tracing.Analysis
 open MathNet.Numerics
 open System.Diagnostics
+open Charting
 
 // Test paths.
 [<Literal>]
@@ -90,6 +91,8 @@ let test_model_burstyallocator() : GaussianModel =
     let queryProcessObjectiveFunction : ObjectiveFunction = QueryProcessByTraceLog queryProcessByTraceLog
     createModelDiscrete gaussianProcess queryProcessObjectiveFunction 1 System.Environment.ProcessorCount 300
 
-let model  : GaussianModel = test_model_burstyallocator()
-let optima : DataPoint     = findOptima model Goal.Min 20 
+let model    : GaussianModel = test_model_sin()
+let explored : ModelResult   = explore model Goal.Max 40 
+let optima   : DataPoint     = findOptima model Goal.Max 2
+plotAndSave explored "./Data.png" "Sin() Final Iteration"
 printfn "Optima: %A" optima

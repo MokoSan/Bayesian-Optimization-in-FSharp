@@ -7,8 +7,8 @@ open System
 open Kernel
 
 // TODO: Comment and clean.
-let predict (model: GaussianModel) : IEnumerable<EstimationResult> =
-    let predictPoint (gaussianProcess : GaussianProcess) (input : double) : EstimationResult = 
+let predict (model: GaussianModel) : IEnumerable<PredictionResult> =
+    let predictPoint (gaussianProcess : GaussianProcess) (input : double) : PredictionResult = 
 
         let matchedKernelFunction : (double -> double -> double) = getKernelFunction model
 
