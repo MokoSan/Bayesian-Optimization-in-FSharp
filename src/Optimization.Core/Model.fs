@@ -70,7 +70,7 @@ let createModel (gaussianProcess   : GaussianProcess)
 
     { GaussianProcess = gaussianProcess; ObjectiveFunction = objectiveFunction; Inputs = inputs }
 
-let findOptima (model : GaussianModel) (goal : Goal) (iterations : int) : ModelResult =
+let explore (model : GaussianModel) (goal : Goal) (iterations : int) : ModelResult =
 
     // Add the first and last points to the model to kick things off.
     fitToModel model model.Inputs.[0]
@@ -80,8 +80,8 @@ let findOptima (model : GaussianModel) (goal : Goal) (iterations : int) : ModelR
 
         // Select next point to sample via the surrogate function i.e. estimation of the objective that maximizes the acquisition function.
         let nextPoint : double = 
-            let surrogateEstimations        : IEnumerable<EstimationResult> = predict model
-            let acquisitionResults          : IEnumerable<AcquisitionFunctionResult> = surrogateEstimations.Select(fun e -> (expectedImprovement model.GaussianProcess e goal DEFAULT_EXPLORATION_PARAMETER ))
+            let predictions                 : IEnumerable<EstimationResult> = predict model
+            let acquisitionResults          : IEnumerable<AcquisitionFunctionResult> = predictions.Select(fun e -> (expectedImprovement model.GaussianProcess e goal DEFAULT_EXPLORATION_PARAMETER ))
             let optimumValueFromAcquisition : AcquisitionFunctionResult = acquisitionResults.MaxBy(fun e -> e.AcquisitionScore)
             optimumValueFromAcquisition.Input
 
@@ -97,3 +97,9 @@ let findOptima (model : GaussianModel) (goal : Goal) (iterations : int) : ModelR
         AcquistionFunctionResult = estimationResult.Select(fun e -> expectedImprovement model.GaussianProcess e goal DEFAULT_EXPLORATION_PARAMETER).ToList() 
         EstimationResult         = estimationResult.ToList()
     }
+
+let findOptima (model : GaussianModel) (goal : Goal) (iterations : int) : DataPoint = 
+    let explorationResults : ModelResult = explore model goal iterations
+    match goal with
+    | Goal.Max -> explorationResults.ObservedDataPoints.MaxBy(fun o -> o.Y )
+    | Goal.Min -> explorationResults.ObservedDataPoints.MinBy(fun o -> o.Y )
