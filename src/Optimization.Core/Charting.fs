@@ -40,8 +40,8 @@ let chartResult (result : ModelResult) (nextPoint : Nullable<double>) (title : s
         | true -> 
             Chart.Line( 
                 [nextPoint.Value; nextPoint.Value], 
-                [Math.Min(result.ObservedDataPoints.Min(fun o -> o.Y), result.AcquisitionResults.Min(fun o -> o.Input)); 
-                    Math.Max(result.ObservedDataPoints.Max(fun o -> o.Y), result.AcquisitionResults.Max(fun o -> o.Input))],
+                [Math.Min(result.ObservedDataPoints.Min(fun o -> o.Y), result.AcquisitionResults.Min(fun o -> o.AcquisitionScore)); 
+                    Math.Max(result.ObservedDataPoints.Max(fun o -> o.Y), result.AcquisitionResults.Max(fun o -> o.AcquisitionScore))],
                 Name = "Next Point"
             )
         | false ->
@@ -55,30 +55,16 @@ let chartResult (result : ModelResult) (nextPoint : Nullable<double>) (title : s
     |> Chart.combine
     |> Chart.withTitle title
 
-let chartAllResults (results : ExplorationResults) : GenericChart.GenericChart seq =
+let chartAllResults (results : OptimaResults) : GenericChart.GenericChart seq =
     let intermediateCharts : GenericChart.GenericChart seq = 
-        results.IntermediateResults
+        results.ExplorationResults.IntermediateResults
         |> Seq.map(fun i -> (
-            chartResult i.Result (Nullable(i.NextPoint)) $"Iteration: {i.Iteration}"
+            chartResult i.Result (Nullable(i.NextPoint)) $"Iteration: {i.Iteration}. Next Point: {Math.Round(i.NextPoint, 2)}"
         ))
 
     // Final chart doesn't have a next point.
     let finalChart : GenericChart.GenericChart = 
-        chartResult results.FinalResult (Nullable()) "Final Iteration"
-
-    [finalChart]
-    |> Seq.append intermediateCharts
-
-let chartOptima (results : OptimaResults) : GenericChart.GenericChart seq =
-    // Chart Intermediate Results
-    let intermediateCharts : GenericChart.GenericChart seq = 
-        results.ExplorationResults.IntermediateResults
-        |> Seq.map(fun i -> (
-            chartResult i.Result (Nullable(i.NextPoint)) $"Iteration: {i.Iteration}"
-        ))
-
-    let finalChart : GenericChart.GenericChart = 
-        chartResult results.ExplorationResults.FinalResult (Nullable(results.Optima.X)) $"Final Iteration - Optima: {results.Optima.X, 2} - {results.Optima.Y, 2}"
+        chartResult results.ExplorationResults.FinalResult (Nullable(results.Optima.X)) $"Final Iteration - Optima at {Math.Round(results.Optima.X,2)}"
 
     [finalChart]
     |> Seq.append intermediateCharts
@@ -105,6 +91,8 @@ let saveGif (baseOutputPath: string) (gifSavePath : string) : unit =
         images.Add image
         images.[images.Count - 1].AnimationDelay <- 100
     ))
+
+    images.[images.Count - 1].AnimationDelay <- 500
 
     images.Optimize() |> ignore
     images.Write(gifSavePath)

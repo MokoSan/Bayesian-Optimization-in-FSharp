@@ -45,7 +45,7 @@ let test_model_sin() : GaussianModel =
         }
 
     let sinObjectiveFunction : ObjectiveFunction = QueryContinuousFunction Trig.Sin
-    createModel gaussianProcess sinObjectiveFunction -Math.PI Math.PI 3000
+    createModel gaussianProcess sinObjectiveFunction -Math.PI Math.PI 300
 
 let test_model_simpleworkload_1() : GaussianModel =
     let gaussianProcess : GaussianProcess = 
@@ -92,8 +92,7 @@ let test_model_burstyallocator() : GaussianModel =
     createModelWithDiscreteInputs gaussianProcess queryProcessObjectiveFunction 1 System.Environment.ProcessorCount 300
 
 let model    : GaussianModel      = test_model_sin()
-let explored : ExplorationResults = explore model Goal.Max 20 
-let optima   : OptimaResults      = findOptima model Goal.Max 2
+let optima   : OptimaResults      = findOptima model Goal.Max 20 
 printfn "Optima: %A" optima.Optima
 
 open Plotly.NET
@@ -101,7 +100,7 @@ open Plotly.NET
 let chart : GenericChart.GenericChart = chartResult optima.ExplorationResults.FinalResult (Nullable(optima.Optima.X)) "Final Result" 
 
 let charts : GenericChart.GenericChart seq = 
-    chartAllResults explored
+    chartAllResults optima 
 
 saveChart "./Saved.png" chart
 saveCharts "./Base" charts
