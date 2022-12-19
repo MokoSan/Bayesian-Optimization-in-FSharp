@@ -89,10 +89,10 @@ let test_model_burstyallocator() : GaussianModel =
         }
 
     let queryProcessObjectiveFunction : ObjectiveFunction = QueryProcessByTraceLog queryProcessByTraceLog
-    createModelWithDiscreteInputs gaussianProcess queryProcessObjectiveFunction 1 System.Environment.ProcessorCount 300
+    createModelWithDiscreteInputs gaussianProcess queryProcessObjectiveFunction 1 System.Environment.ProcessorCount 900
 
-let model    : GaussianModel      = test_model_sin()
-let optima   : OptimaResults      = findOptima model Goal.Max 20 
+let model    : GaussianModel      = test_model_burstyallocator()
+let optima   : OptimaResults      = findOptima model Goal.Min 20 
 printfn "Optima: %A" optima.Optima
 
 open Plotly.NET
