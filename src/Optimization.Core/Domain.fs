@@ -66,3 +66,19 @@ and PredictionResult =
         LowerBound : double
         UpperBound : double
     }
+and ExplorationResults  =
+    {
+        IntermediateResults : IReadOnlyList<IntermediateResult> 
+        FinalResult         : ModelResult
+    }
+and OptimaResults       = 
+    {
+        ExplorationResults : ExplorationResults
+        Optima             : DataPoint
+    }
+and IntermediateResult  = 
+    {
+        Result    : ModelResult
+        NextPoint : double
+        Iteration : int
+    }

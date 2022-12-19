@@ -2,6 +2,7 @@
 
 open System
 open System.Linq
+open System.Collections.Generic
 open MathNet.Numerics.LinearAlgebra
 open AcquisitionFunctions
 open ObjectiveFunctions
@@ -44,14 +45,14 @@ let fitToModel (model : GaussianModel) (input : double) : unit =
         updatedCovarianceMatrix[size - 1,  size - 1] <- matchedKernel dataPoint.X dataPoint.X
         model.GaussianProcess.CovarianceMatrix       <- updatedCovarianceMatrix
 
-let createModelDiscrete (gaussianProcess   : GaussianProcess)
-                        (objectiveFunction : ObjectiveFunction)
-                        (min               : int)
-                        (max               : int)
-                        (resolution        : int) : GaussianModel =
+let createModelWithDiscreteInputs (gaussianProcess   : GaussianProcess)
+                                  (objectiveFunction : ObjectiveFunction)
+                                  (min               : int)
+                                  (max               : int)
+                                  (resolution        : int) : GaussianModel =
 
     let inputs : double list = seq { for i in 0 .. resolution do i }
-                               |> Seq.map(fun idx -> Math.Round( double( min + idx * (max - min) / ( resolution - 1))))
+                               |> Seq.map(fun idx -> Math.Round( double(min + idx * (max - min) / (resolution - 1) )))
                                |> Seq.distinct
                                |> Seq.sort
                                |> Seq.toList
@@ -69,7 +70,7 @@ let createModel (gaussianProcess   : GaussianProcess)
 
     { GaussianProcess = gaussianProcess; ObjectiveFunction = objectiveFunction; Inputs = inputs }
 
-let explore (model : GaussianModel) (goal : Goal) (iterations : int) : ModelResult =
+let explore (model : GaussianModel) (goal : Goal) (iterations : int) : ExplorationResults  =
 
     let applyFitToModel : (double -> unit) = fitToModel model
         
@@ -77,32 +78,54 @@ let explore (model : GaussianModel) (goal : Goal) (iterations : int) : ModelResu
     applyFitToModel model.Inputs.[0] 
     applyFitToModel (model.Inputs.Last())
 
+    let intermediateResults : List<IntermediateResult> = List<IntermediateResult>()
+
+    // Iterate with each step to find the most optimum next point.
     seq { 0..(iterations - 1) }
-    |> Seq.iter(fun _ -> (
+    |> Seq.iter(fun iteration -> (
 
         // Select next point to sample via the surrogate function i.e. estimation of the objective that maximizes the acquisition function.
-        let nextPoint : double = 
-            let predictions                 : PredictionResult seq = predict model
-            let acquisitionResults          : AcquisitionFunctionResult seq = predictions.Select(fun e -> (expectedImprovement model.GaussianProcess e goal DEFAULT_EXPLORATION_PARAMETER ))
-            let optimumValueFromAcquisition : AcquisitionFunctionResult = acquisitionResults.MaxBy(fun e -> e.AcquisitionScore)
-            optimumValueFromAcquisition.Input
+        let predictions                 : PredictionResult seq = predict model
+        let acquisitionResults          : AcquisitionFunctionResult seq = predictions.Select(fun e -> 
+            (expectedImprovement model.GaussianProcess e goal DEFAULT_EXPLORATION_PARAMETER ))
+        let optimumValueFromAcquisition : AcquisitionFunctionResult = acquisitionResults.MaxBy(fun e -> e.AcquisitionScore)
+        let nextPoint                   : double = optimumValueFromAcquisition.Input
+
+        let result : ModelResult = 
+            {
+                ObservedDataPoints = model.GaussianProcess.ObservedDataPoints.ToList()
+                AcquisitionResults = acquisitionResults.ToList()
+                PredictionResults  = predictions.ToList() 
+            }
+
+        intermediateResults.Add({ Result = result; NextPoint = nextPoint; Iteration = iteration })
 
         // Add the point to the model if it already hasn't been added.
         if model.GaussianProcess.ObservedDataPoints.Any(fun d -> d.X = nextPoint) then ()
-        else
-            applyFitToModel nextPoint
+        else applyFitToModel nextPoint
     ))
 
-    let estimationResult : PredictionResult seq = predict model
+    let finalPredictions : PredictionResult seq = predict model
+
+    let finalResult : ModelResult =
+        {
+            ObservedDataPoints = model.GaussianProcess.ObservedDataPoints
+            AcquisitionResults = finalPredictions.Select(fun e -> expectedImprovement model.GaussianProcess e goal DEFAULT_EXPLORATION_PARAMETER).ToList()
+            PredictionResults  = finalPredictions.ToList()
+        }
 
     {
-        ObservedDataPoints       = model.GaussianProcess.ObservedDataPoints
-        AcquisitionResults = estimationResult.Select(fun e -> expectedImprovement model.GaussianProcess e goal DEFAULT_EXPLORATION_PARAMETER).ToList()
-        PredictionResults         = estimationResult.ToList()
+        IntermediateResults = intermediateResults
+        FinalResult         = finalResult
     }
 
-let findOptima (model : GaussianModel) (goal : Goal) (iterations : int) : DataPoint = 
-    let explorationResults : ModelResult = explore model goal iterations
-    match goal with
-    | Goal.Max -> explorationResults.ObservedDataPoints.MaxBy(fun o -> o.Y)
-    | Goal.Min -> explorationResults.ObservedDataPoints.MinBy(fun o -> o.Y)
+let findOptima (model : GaussianModel) (goal : Goal) (iterations : int) : OptimaResults = 
+    let explorationResults : ExplorationResults = explore model goal iterations
+    let optima = 
+        match goal with
+        | Goal.Max -> explorationResults.FinalResult.ObservedDataPoints.MaxBy(fun o -> o.Y)
+        | Goal.Min -> explorationResults.FinalResult.ObservedDataPoints.MinBy(fun o -> o.Y)
+    {
+        ExplorationResults = explorationResults
+        Optima             = optima
+    }

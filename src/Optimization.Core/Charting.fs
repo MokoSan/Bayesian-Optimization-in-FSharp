@@ -1,65 +1,93 @@
 ﻿module Charting
 
-open PuppeteerSharp
-open System.Linq
 open System.IO
-open XPlot.Plotly
+open System.Linq
+open System
+open Plotly.NET
+open Plotly.NET.ImageExport
 
-let plotExploration (result : ModelResult) (title : string) : PlotlyChart =  
-    let observedDataPoints : Scatter =
+let chartResult (result : ModelResult) (nextPoint : Nullable<double>) (title : string) : GenericChart.GenericChart  =  
+    let observedDataPoints : GenericChart.GenericChart =
         let ordered : DataPoint seq = result.ObservedDataPoints.OrderBy(fun o -> o.X)
-        Scatter(
-            x    = ordered.Select(fun o -> o.X),
-            y    = ordered.Select(fun o -> o.Y),
-            name = "Observed Data",
-            mode = "lines+markers"
+        Chart.Line(
+            ordered.Select(fun o -> o.X),
+            ordered.Select(fun o -> o.Y),
+            Name = "Observed Data",
+            ShowMarkers=true
         )
 
-    let predictedMean : Scatter = 
+    let predictedMean : GenericChart.GenericChart = 
         let ordered : PredictionResult seq = result.PredictionResults.OrderBy(fun a -> a.Input)
-        Scatter(
-            x    = ordered.Select(fun a -> a.Input),
-            y    = ordered.Select(fun a -> a.Mean),
-            name = "Predictions",
-            mode = "lines+markers"
+        Chart.Line(
+            ordered.Select(fun a -> a.Input),
+            ordered.Select(fun a -> a.Mean),
+            Name = "Predictions",
+            ShowMarkers = true
         )
 
-    let acquisitionResultsScatter : Scatter = 
+    let acquisitionResultsScatter : GenericChart.GenericChart = 
         let ordered : AcquisitionFunctionResult seq = result.AcquisitionResults.OrderBy(fun a -> a.Input)
-        Scatter(
-            x    = ordered.Select(fun a -> a.Input),
-            y    = ordered.Select(fun a -> a.AcquisitionScore),
-            name = "Acquisition Results"
+        Chart.Line(
+            ordered.Select(fun a -> a.Input),
+            ordered.Select(fun a -> a.AcquisitionScore),
+            Name = "Acquisition Results"
         )
 
-    // TODO: Add next point.
+    let nextPointScatter : GenericChart.GenericChart = 
+        match nextPoint.HasValue with
+        | true -> 
+            Chart.Line( 
+                [nextPoint.Value; nextPoint.Value], 
+                [result.ObservedDataPoints.Min(fun o -> o.Y); result.ObservedDataPoints.Max(fun o -> o.Y)],
+                Name = "Next Point"
+            )
+        | false ->
+            Chart.Line(
+                [],
+                [],
+                Name = "Next Point"
+            )
 
-    let layout : Layout.Layout = Layout.Layout()
-    layout.title <- title 
+    [observedDataPoints; predictedMean; acquisitionResultsScatter; nextPointScatter]
+    |> Chart.combine
+    |> Chart.withTitle title
 
-    ([observedDataPoints; acquisitionResultsScatter; predictedMean ], layout)
-    |> Chart.Plot
-    |> Chart.WithWidth 700
-    |> Chart.WithHeight 500
+let chartAllResults (results : ExplorationResults) : GenericChart.GenericChart seq =
+    let intermediateCharts : GenericChart.GenericChart seq = 
+        results.IntermediateResults
+        |> Seq.map(fun i -> (
+            chartResult i.Result (Nullable(i.NextPoint)) $"Iteration: {i.Iteration}"
+        ))
 
-let plotAndSave (result : ModelResult) (outputPath : string) (title : string) : unit = 
-    let plot : PlotlyChart = plotExploration result title 
-    let tempHtmlFile : string = $"{outputPath}_file.html"
+    // Final chart doesn't have a next point.
+    let finalChart : GenericChart.GenericChart = 
+        chartResult results.FinalResult (Nullable()) "Final Iteration"
 
-    async {
+    [finalChart]
+    |> Seq.append intermediateCharts
 
-        // Write Plot.
-        File.WriteAllTextAsync(tempHtmlFile, plot.GetHtml()) |> Async.AwaitTask |> ignore
+let chartOptima (results : OptimaResults) : GenericChart.GenericChart seq =
+    // Chart Intermediate Results
+    let intermediateCharts : GenericChart.GenericChart seq = 
+        results.ExplorationResults.IntermediateResults
+        |> Seq.map(fun i -> (
+            chartResult i.Result (Nullable(i.NextPoint)) $"Iteration: {i.Iteration}"
+        ))
 
-        use browserFetcher : BrowserFetcher = new BrowserFetcher()
-        browserFetcher.DownloadAsync() |> Async.AwaitTask |> ignore
+    let finalChart : GenericChart.GenericChart = 
+        chartResult results.ExplorationResults.FinalResult (Nullable(results.Optima.X)) "Final Iteration"
 
-        let launchOptions : LaunchOptions = LaunchOptions()
-        launchOptions.Headless <- true
+    [finalChart]
+    |> Seq.append intermediateCharts
 
-        // TODO: FIX....
-        //let! browser = Puppeteer.LaunchAsync(launchOptions) |> Async.AwaitTask
-        //let! page    = browser.NewPageAsync()               |> Async.AwaitTask
-        //page.GoToAsync(tempHtmlFile)                        |> Async.AwaitTask |> ignore
-        //page.ScreenshotAsync outputPath                     |> Async.AwaitTask |> ignore
-    }|> Async.RunSynchronously
+let saveChart (outputPath : string) (chart : GenericChart.GenericChart) : unit =
+    chart
+    |> Chart.savePNG(outputPath)
+
+let saveCharts (baseOutputPath : string) (charts : GenericChart.GenericChart seq) : unit =
+
+    if (Directory.Exists(baseOutputPath)) then ()
+    else Directory.CreateDirectory(baseOutputPath)  |> ignore
+
+    charts
+    |> Seq.iteri(fun idx chart -> saveChart (Path.Combine(baseOutputPath, $"{idx}")) chart)

@@ -45,7 +45,7 @@ let test_model_sin() : GaussianModel =
         }
 
     let sinObjectiveFunction : ObjectiveFunction = QueryContinuousFunction Trig.Sin
-    createModel gaussianProcess sinObjectiveFunction -Math.PI Math.PI 300 
+    createModel gaussianProcess sinObjectiveFunction -Math.PI Math.PI 3000
 
 let test_model_simpleworkload_1() : GaussianModel =
     let gaussianProcess : GaussianProcess = 
@@ -57,7 +57,7 @@ let test_model_simpleworkload_1() : GaussianModel =
 
     let queryProcessInfo : QueryProcessInfo = { WorkloadPath = workload; ApplyArguments = (fun input -> $"--input {input}") } 
     let queryProcessObjectiveFunction : ObjectiveFunction = (QueryProcessByElapsedTimeInSeconds queryProcessInfo)
-    createModel gaussianProcess queryProcessObjectiveFunction 0 5 300 
+    createModel gaussianProcess queryProcessObjectiveFunction 0 5 30
 
 let test_model_burstyallocator() : GaussianModel =
     let gaussianProcess : GaussianProcess = 
@@ -89,10 +89,19 @@ let test_model_burstyallocator() : GaussianModel =
         }
 
     let queryProcessObjectiveFunction : ObjectiveFunction = QueryProcessByTraceLog queryProcessByTraceLog
-    createModelDiscrete gaussianProcess queryProcessObjectiveFunction 1 System.Environment.ProcessorCount 300
+    createModelWithDiscreteInputs gaussianProcess queryProcessObjectiveFunction 1 System.Environment.ProcessorCount 300
 
-let model    : GaussianModel = test_model_sin()
-let explored : ModelResult   = explore model Goal.Max 40 
-let optima   : DataPoint     = findOptima model Goal.Max 2
-plotAndSave explored "./Data.png" "Sin() Final Iteration"
-printfn "Optima: %A" optima
+let model    : GaussianModel      = test_model_sin()
+let explored : ExplorationResults = explore model Goal.Max 20 
+let optima   : OptimaResults      = findOptima model Goal.Max 2
+printfn "Optima: %A" optima.Optima
+
+open Plotly.NET
+
+let chart : GenericChart.GenericChart = chartResult optima.ExplorationResults.FinalResult (Nullable(optima.Optima.X)) "Final Result" 
+
+let charts : GenericChart.GenericChart seq = 
+    chartAllResults explored
+
+saveChart "./Saved.png" chart
+saveCharts "./Base" charts
