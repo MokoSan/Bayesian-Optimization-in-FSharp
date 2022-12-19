@@ -105,3 +105,5 @@ let charts : GenericChart.GenericChart seq =
 
 saveChart "./Saved.png" chart
 saveCharts "./Base" charts
+
+saveGif "./Base" "./Base/Combined.gif"

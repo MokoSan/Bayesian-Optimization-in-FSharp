@@ -1,10 +1,12 @@
 ﻿module Charting
 
+open System
+open System.Text.RegularExpressions
 open System.IO
 open System.Linq
-open System
 open Plotly.NET
 open Plotly.NET.ImageExport
+open ImageMagick
 
 let chartResult (result : ModelResult) (nextPoint : Nullable<double>) (title : string) : GenericChart.GenericChart  =  
     let observedDataPoints : GenericChart.GenericChart =
@@ -38,7 +40,8 @@ let chartResult (result : ModelResult) (nextPoint : Nullable<double>) (title : s
         | true -> 
             Chart.Line( 
                 [nextPoint.Value; nextPoint.Value], 
-                [result.ObservedDataPoints.Min(fun o -> o.Y); result.ObservedDataPoints.Max(fun o -> o.Y)],
+                [Math.Min(result.ObservedDataPoints.Min(fun o -> o.Y), result.AcquisitionResults.Min(fun o -> o.Input)); 
+                    Math.Max(result.ObservedDataPoints.Max(fun o -> o.Y), result.AcquisitionResults.Max(fun o -> o.Input))],
                 Name = "Next Point"
             )
         | false ->
@@ -75,7 +78,7 @@ let chartOptima (results : OptimaResults) : GenericChart.GenericChart seq =
         ))
 
     let finalChart : GenericChart.GenericChart = 
-        chartResult results.ExplorationResults.FinalResult (Nullable(results.Optima.X)) "Final Iteration"
+        chartResult results.ExplorationResults.FinalResult (Nullable(results.Optima.X)) $"Final Iteration - Optima: {results.Optima.X, 2} - {results.Optima.Y, 2}"
 
     [finalChart]
     |> Seq.append intermediateCharts
@@ -91,3 +94,17 @@ let saveCharts (baseOutputPath : string) (charts : GenericChart.GenericChart seq
 
     charts
     |> Seq.iteri(fun idx chart -> saveChart (Path.Combine(baseOutputPath, $"{idx}")) chart)
+
+let saveGif (baseOutputPath: string) (gifSavePath : string) : unit =  
+    let allImages : string seq = Directory.GetFiles(baseOutputPath, "*.png") 
+                                 |> Seq.sortBy(fun d -> int (Regex.Replace(Path.GetFileName(d), "[^0-9]", "")))
+    use images : MagickImageCollection = new MagickImageCollection()
+    allImages
+    |> Seq.iter(fun path -> (
+        let image : MagickImage = new MagickImage(path)
+        images.Add image
+        images.[images.Count - 1].AnimationDelay <- 100
+    ))
+
+    images.Optimize() |> ignore
+    images.Write(gifSavePath)
