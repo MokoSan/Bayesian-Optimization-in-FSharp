@@ -39,5 +39,6 @@ let stopTrace (startCommand : string) : unit =
     use stopProcess : Process = new Process()
     stopProcess.StartInfo.FileName  <- perfViewPath
     stopProcess.StartInfo.Arguments <- startCommand.Replace("start", "stop") 
-    stopProcess.Start() |> ignore
-    stopProcess.WaitForExit()
+    stopProcess.Start()       |> ignore
+    stopProcess.WaitForExit() |> ignore
+    stopProcess.Dispose()     |> ignore
