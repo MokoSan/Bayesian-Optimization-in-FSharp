@@ -18,13 +18,13 @@ let expectedImprovement (gaussianProcess : GaussianProcess)
 
     if gaussianProcess.ObservedDataPoints.Any(fun d -> d.X = estimationResult.Input) then baseResult 
     else
-        let delta : double = estimationResult.Mean - optimumValue - explorationParameter
-        let sigma : double = estimationResult.UpperBound - estimationResult.LowerBound
-        if sigma = 0 then baseResult
+        let Δ : double = estimationResult.Mean - optimumValue - explorationParameter
+        let σ : double = (estimationResult.UpperBound - estimationResult.LowerBound) / 2.
+        if σ = 0 then baseResult
         else 
-            let z                   : double = delta / sigma
-            let exploitationFactor  : double  = delta * Normal.CDF(0, 1, z)
-            let explorationFactor   : double  = sigma * Normal.PDF(0, 1, z)
+            let z                   : double = Δ / σ 
+            let exploitationFactor  : double  = Δ * Normal.CDF(0, 1, z)
+            let explorationFactor   : double  = σ * Normal.PDF(0, 1, z)
             let expectedImprovement : double = exploitationFactor + explorationFactor
 
             { Input = estimationResult.Input; AcquisitionScore = Math.Max(expectedImprovement, 0) }

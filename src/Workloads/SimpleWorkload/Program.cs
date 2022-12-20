@@ -5,8 +5,8 @@ namespace SimpleWorkload
 {
     class Program
     { 
-        private const int DEFAULT_SLEEP_MSEC    = 500;
-        private const int FAST_SLEEP_MSEC       = 100;
+        private const int DEFAULT_SLEEP_MSEC    = 750;
+        private const int FAST_SLEEP_MSEC       = 200;
         private const int FASTEST_SLEEP_MSEC    = 50;
 
         public class Options
