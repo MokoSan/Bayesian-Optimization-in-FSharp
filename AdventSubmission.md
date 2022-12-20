@@ -1,37 +1,31 @@
 # FSharp Advent Submission 2022: Bayesian Optimization for Performance Tuning in FSharp
 
-<img src="./resources/Gears.jpg" width="200" height="100">
+<img src="./resources/Gears.jpg" width="400" height="300">
 
 ## Introduction
 
 For my 6th F# Advent submission (6 years in a row!!), I worked on combining what I learnt from my last 2 submissions: [2020: Bayesian Inference in FSharp](http://bit.ly/3hhhRjq) and [2021: Perf Avore: A Performance Analysis and Monitoring Tool in FSharp](https://github.com/MokoSan/PerfAvore/blob/main/AdventSubmission.md#perf-avore-a-performance-analysis-and-monitoring-tool-in-fsharp) to develop a Bayesian Optimization algorithm in F# to solve global optimization problems. This algorithm is compatible with intractable and complex objective functions such as those dictated by the results from Event Tracing for Windows (ETW), a Windows profiling mechanism for troubleshooting and diagnostics, in an effort to discern the best parameters to use based on the specified workload. I plan to demonstrate how I applied the algorithm to various experiments to obtain the best parameters in some practical cases and highlight how I made use of F#'s functional features. In terms of using F#, I have had a fabulous experience ,as always! I have expounded on this [here](#experience-developing-in-fsharp).
 
-If some or all parts of the aforementioned aspects of this submission seem cryptic, fret not as I plan to cover these topics in detail. The intended audience of this submission is any developer, data scientist or performance engineer interested in how a mathematical optimization algorithm is implemented in a functional-first way.
+If some or all parts of the aforementioned aspects of this submission seem cryptic, fret not as I plan to cover these topics in detail. The intended audience of this submission is any developer, data scientist or performance engineer interested in how the Bayesian Optimization algorithm is implemented in a functional-first way.
 
 ## Goals
 
 To be concrete, the goals of this submission are:
 
-1. [To Describe Bayesian Optimization](#bayesian-optimization) 
-2. Go Over the Implementation of the Bayesian Optimization algorithm in F#.
-3. Provide a Short Primer on Event Tracing for Windows (ETW).
-4. Present the Multiple Applications of the Bayesian Optimization from simple to more complex:
+1. [To Describe Bayesian Optimization](#bayesian-optimization) and go over the implementation.
+2. Provide a Short Primer on Event Tracing for Windows (ETW).
+3. Present the Multiple Applications of the Bayesian Optimization from simple to more complex:
    1. __Optimizing a Mathematical Function__: Finding the maxima of the ``Sin`` function between Pi and π and -π.
    2. __The Wall Clock Time of A Simple Command Line App__: Finding the minima of the wall clock time of execution based on the input. 
    3. __The Percent of Time Spent during Garbage Collection For a High Memory Load Case With Bursty Allocations__: Finding the minima of the percent of time spent during garbage collection based on pivoting on the number of Garbage Collection Heaps or Threads using Traces obtained via ETW.
 
 ## Bayesian Optimization
 
-The goal of any mathematical optimization function is the selection of the best element vis-à-vis some criterion known as the objective function from a number of available alternatives; the best element or optima here can be either the one that minimizes the criterion or maximizes it. Mathematically, this can expressed as:
+In this section, I plan to go over concomitant statistical topics but not dwell too much into the mathematical formula but instead try to give an intuitive meaning as best as possible. The goal of any mathematical optimization function is the selection of the best element vis-à-vis some criterion known as the objective function from a number of available alternatives; the best element or optima here can be either the one that minimizes the criterion or maximizes it. Mathematically, this can expressed as:
 
-$$ \argmax_x f(x) $$
+$$ \arg \max_{x} f(x) $$
 
 or finding the argument 'x' that maximizes (minimization is just the negative of maximization) the function, ``f(x)``. 
-
-### Example of Optimization
-
-An example of optimization 
-
 
 ### Why Bayesian Optimization?
 
@@ -47,13 +41,37 @@ The surrogate model, as mentioned above, is used to approximate the objective fu
 
 ##### Gaussian Processes
 
-Gaussian Processes is a collection of random variables such that the joint probability distribution of every subset of these random variables is a  
+A Gaussian Process is a random process comprising of a collection of random variables such that the joint probability distribution of every subset of these random variables is normally distributed. Intuitively, a Gaussian Process can be thought of a possibly infinite set of normally distributed variables that excel at efficient and effective summarization of a large number of functions and smooth transitions as more data is available to the model. 
+
+An important aspect of defining a Gaussian Process is the __Kernel__ that controls the shape of the function at specific points. The kernel I have implemented is called the "Squared Exponential Kernel" or "Gaussian Kernel" and has two parameters that control the smoothness of the function via a length parameter and vertical variation via a variance parameter. 
+
+The code of this function looks like the following: 
+
+```fsharp
+// src/Optimization.Core/Kernel.fs
+
+let squaredExponentialKernelCompute (parameters : SquaredExponentialKernelParameters) (left : double) (right : double) : double = 
+    if left = right then parameters.Variance
+    else
+        let squareDistance : double = Math.Pow((left - right), 2)
+        parameters.Variance * Math.Exp( -squareDistance / ( parameters.LengthScale * parameters.LengthScale * 2. ))
+```
+where
+
+```fsharp
+// src/Optimization.Core/Domain.fs
+
+type SquaredExponentialKernelParameters = { LengthScale : double; Variance : double }
+```
+
+#### Acquisition Function
+
+Where to search next is 
 
 
-#### Acqusition Function
+#### The Algorithm
 
-
-#### Squared Exponential Kernel
+For a 
 
 ## Domain
 
