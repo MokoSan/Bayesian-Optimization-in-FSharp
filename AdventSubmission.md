@@ -47,6 +47,8 @@ The surrogate model, as mentioned above, is used to approximate the objective fu
 
 ##### Gaussian Processes
 
+Gaussian Processes is a collection of random variables such that the joint probability distribution of every subset of these random variables is a  
+
 
 #### Acqusition Function
 
