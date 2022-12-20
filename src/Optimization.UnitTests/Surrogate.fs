@@ -1,7 +1,7 @@
 ﻿module Surrogate 
 
 open NUnit.Framework
-open Kernel 
+open Optimization.Kernel 
 
 [<SetUp>]
 let Setup () = ()

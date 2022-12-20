@@ -12,9 +12,6 @@ type Goal =
 // Helper Types.
 type WorkloadPath   = string
 type ApplyArguments = string -> string
-type LengthScale    = double
-// TODO: Add constrain to make this non-negative.
-type Variance       = double
 
 type GaussianModel    =
     {

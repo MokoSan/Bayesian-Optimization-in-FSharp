@@ -1,7 +1,8 @@
 module Kernel 
 
 open NUnit.Framework
-open Kernel 
+open Optimization.Domain
+open Optimization.Kernel 
 
 [<Test>]
 let ``Squared Exponential Kernel Computation When Left and Right Are Equal Should Return The Variance`` () =
