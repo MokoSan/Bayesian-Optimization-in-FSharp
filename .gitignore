@@ -461,3 +461,6 @@ target/
 
 # Notebook Checkpoints
 .ipynb_checkpoints/
+
+# Remove the references to the local chromium folder.
+.local-chromium

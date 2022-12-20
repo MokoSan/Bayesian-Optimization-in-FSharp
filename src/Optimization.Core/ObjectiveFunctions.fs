@@ -1,4 +1,4 @@
-﻿module ObjectiveFunctions
+﻿module Optimization.ObjectiveFunctions
 
 open System.IO
 open Microsoft.Diagnostics.Tracing

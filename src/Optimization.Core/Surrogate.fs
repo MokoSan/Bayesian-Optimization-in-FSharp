@@ -1,4 +1,4 @@
-﻿module Surrogate 
+﻿module Optimization.Surrogate 
 
 open System.Collections.Generic
 open System.Linq

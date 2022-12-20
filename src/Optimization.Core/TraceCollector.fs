@@ -1,4 +1,4 @@
-﻿module TraceCollector
+﻿module Optimization.TraceCollector
 
 open System
 open System.Diagnostics
@@ -32,7 +32,7 @@ let startTrace (traceParameters : string) (path : string) : string * Process =
 
 let stopTrace (startCommand : string) : unit =
 
-    // Assumption: if you started PerfView.exe, it exists in the same spot.
+    // Assumption: if you called startTrace, ``PerfView.exe`` will be downloaded. 
     let dependenciesDirectory : string = Path.Combine ( Environment.CurrentDirectory, "dependencies" )
     let perfViewPath : string = Path.Combine( dependenciesDirectory, "PerfView.exe" )
 

@@ -1,4 +1,4 @@
-﻿module Charting
+﻿module Optimization.Charting
 
 open System
 open System.Text.RegularExpressions

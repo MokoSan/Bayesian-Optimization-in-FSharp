@@ -1,4 +1,4 @@
-﻿module Kernel
+﻿module Optimization.Kernel
 
 open System
 

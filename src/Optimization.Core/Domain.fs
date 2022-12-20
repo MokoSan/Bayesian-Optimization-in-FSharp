@@ -1,5 +1,5 @@
 ﻿[<AutoOpen>]
-module Domain
+module Optimization.Domain
 
 open MathNet.Numerics.LinearAlgebra
 open System.Collections.Generic

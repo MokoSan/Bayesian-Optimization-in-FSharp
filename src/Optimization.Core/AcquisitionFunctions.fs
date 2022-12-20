@@ -1,4 +1,4 @@
-﻿module AcquisitionFunctions
+﻿module Optimization.AcquisitionFunctions
 
 open System
 open System.Linq

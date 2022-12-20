@@ -1,11 +1,12 @@
 ﻿open System
-open Model
+open Optimization.Domain
+open Optimization.Model
 open System.Collections.Generic
 open MathNet.Numerics.LinearAlgebra
 open Microsoft.Diagnostics.Tracing.Analysis
 open MathNet.Numerics
 open System.Diagnostics
-open Charting
+open Optimization.Charting
 
 // Test paths.
 [<Literal>]

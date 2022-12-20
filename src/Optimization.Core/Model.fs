@@ -1,4 +1,4 @@
-﻿module Model
+﻿module Optimization.Model
 
 open System
 open System.Linq
