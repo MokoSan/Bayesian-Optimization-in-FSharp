@@ -10,7 +10,7 @@ open Optimization.Charting
 
 // Test paths.
 [<Literal>]
-let workload : string = @"C:\Users\mukun\source\repos\FSharpAdvent_2022\src\Workloads\SimpleWorkload_1\bin\Debug\net7.0\SimpleWorkload_1.exe"
+let workload : string = @"C:\Users\mukun\source\repos\FSharpAdvent_2022\src\Workloads\SimpleWorkload\bin\Debug\net7.0\SimpleWorkload.exe"
 [<Literal>]
 let burstyAllocator : string = @"C:\Users\mukun\source\repos\FSharpAdvent_2022\src\Workloads\BurstyAllocator\bin\Release\net6.0\BurstyAllocator.exe"
 [<Literal>]
