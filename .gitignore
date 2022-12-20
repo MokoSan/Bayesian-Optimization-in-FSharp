@@ -464,3 +464,5 @@ target/
 
 # Remove the references to the local chromium folder.
 .local-chromium
+
+*launchSettings.json

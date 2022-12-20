@@ -1,7 +1,7 @@
 ﻿using CommandLine;
 
 // A "smoke-test" of a workload that sleeps for the least amount of time if the input to the program is in the range [1., 2).
-namespace SimpleWorkload_1
+namespace SimpleWorkload
 {
     class Program
     { 
