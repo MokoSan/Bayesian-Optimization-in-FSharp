@@ -56,7 +56,7 @@ There are 3 main components:
 
 Diagrammatically,
 
-![Bayesian Optimization Loop](resources/FullLoop.Gif)
+![Bayesian Optimization Loop](resources/FullLoop.gif)
 
 ### What is 'Bayesian' About the Bayesian Optimization Algorithm? 
 
