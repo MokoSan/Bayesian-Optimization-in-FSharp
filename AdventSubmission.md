@@ -14,9 +14,9 @@ To be concrete, the goals of this submission are:
 
 1. [To Describe Bayesian Optimization](#bayesian-optimization). 
 2. [Present the Multiple Applications of the Bayesian Optimization from Simple to more Complex](#experiments):
-   1. [__Maximizing a Trigonometric Function__: Finding the maxima of the ``Sin`` function between -π and π.](#experiment-1-objective-function-is-to-maximize-sinx)
-   2. [__Minimizing The Wall Clock Time of A Simple Command Line App__: Finding the minima of the wall clock time of execution of an independent process based on the input.](#experiment-2-minimizing-the-wall-clock-time-of-a-simple-command-line-app)
-   3. __The Percent of Time Spent during Garbage Collection For a High Memory Load Case With Bursty Allocations__: Finding the minima of the percent of time spent during garbage collection based on pivoting on the number of Garbage Collection Heaps or Threads using Traces obtained via Event Tracing For Windows (ETW). 
+   1. [Maximizing ``Sin`` function between -π and π.](#experiment-1-objective-function-is-to-maximize-sinx)
+   2. [Minimizing The Wall Clock Time of A Simple Command Line App](#experiment-2-minimizing-the-wall-clock-time-of-a-simple-command-line-app): Finding the minima of the wall clock time of execution of an independent process based on the input.
+   3. [Minimizing The Percent of Time Spent during Garbage Collection For a High Memory Load Case With Bursty Allocations By Varying The Number of Heaps](#experiment-3-minimizing-the-wall-clock-execution-time-by-varying): Finding the minima of the percent of time spent during garbage collection based on pivoting on the number of Garbage Collection Heaps or Threads using Traces obtained via Event Tracing For Windows (ETW). 
       1. Give a short primer on ETW Profiling.
 3. [Describe the Implementation of the Bayesian Optimization Algorithm and Infrastructure](#implementation-of-bayesian-optimization-in-fsharp)
 
@@ -77,6 +77,18 @@ Some disadvantages include:
 2. __Model Estimation Takes Time__: Getting the surrogate model to a point where it is behaving like a reasonable approximation of the true objective function can take quite a few iterations, which implies more time spent to get the result. 
 3. __Naive Implementation Isn't Parallelizable By Default__: We need to add more complexity to the model to be able to parallelize the algorithm.
 
+### What are the Inputs of the Model To Get A Basic Run Going?
+
+1. __Kernel Parameters For the Squared Exponential Kernel: Length Scale and Variance__: The length controls the smoothness between the points while the Variance controls the vertical amplitude. A diagram can help explain this better:
+
+
+
+2. __Resolution__: 
+
+
+3. __Iterations__: The number of iterations the Bayesian Optimization Algorithm should run for. The more the better, however, we'd be wasting cycles if we have already reached the maxima and are continuing to iterate; this can be curtailed by early stopping.
+
+
 ### How Do I Interpret the Charts of the Algorithm Below? 
 
 An example of a chart the algorithm is:
@@ -88,7 +100,7 @@ Here are the details:
 1. __Predictions__: The predictions represent the mean of the results obtained from the underlying model that's the approximate of the unknown objective function. This model is also known as the Surrogate Model and more details about this can be found [here](#surrogate-model)
 2. __Acquisition Results__ series represents the acquisition function whose maxima indicates where it is best to search. More details on how the next point to search is discerned can be found [here](#acquisition-function).
 3. __Next Point__: The next point is derived from the maximization of the acquisition function and points to where we should sample next.
-4. __Observed Data__: The observed data is the data collected from iteratively maximizing the acquisition function.
+4. __Observed Data__: The observed data is the data collected from iteratively maximizing the acquisition function. As the number of observed data points increases with increased iterations, the expectation is that the predictions and observed data points converge if the model parameters are set correctly.
 
 Now that a basic definition, reason and other preliminary questions and answers for using Bayesian Optimization are presented, I want to provide some pertinent examples that'll help with contextualizing the associated ideas and highlight the usage of the library.
 
@@ -96,7 +108,7 @@ Now that a basic definition, reason and other preliminary questions and answers 
 
 In this section, I plan to go over 3 main experiments conducted using the optimization algorithm to demonstrate the efficacy of the algorithm and ease of use of the library.
 
-### Experiment 1: Maximizing a Trigonometric Function: Finding the maxima of the ``Sin`` function between π and -π.
+### Experiment 1: Maximizing the ``Sin`` function between π and -π.
 
 ``Sin(x)`` is a simple Trigonometric Function whose maximum value is 1 at $\frac{\pi}{2}$ if the range is between $-\pi$ and $\pi$. Since we know the analytical form of the function, this simple experiment can highlight the correctness of the algorithm (within an acceptable margin of error). A [Polyglot notebook](https://devblogs.microsoft.com/dotnet/dotnet-interactive-notebooks-is-now-polyglot-notebooks/) of this experiment can be found [here](./Experiments/Sin/Sin.ipynb). 
 
@@ -143,7 +155,7 @@ The output gif that's the combination of the iterations is:
 
 ![Sin Function](./Experiments/Sin/resources/Combined.gif)
 
-The function is smooth and therefore, the length scale and variance of 1. respectively are sufficient to get us to a good point where we achieve the optima in a few number of iterations. The caveat here, however, was the selection of the resolution
+The function is smooth and therefore, the length scale and variance of 1. respectively are sufficient to get us to a good point where we achieve the optima in a few number of iterations. The caveat here, however, was the selection of the resolution that had to be high since we want a certain degree of precision in terms of calculating the optima.
 
 ### Experiment 2: Minimizing The Wall Clock Time of A Simple Command Line App
 
@@ -195,7 +207,7 @@ let resolution : int = 500
 let workloadPath = @"..\..\src\Workloads\SimpleWorkload\bin\Release\net7.0\SimpleWorkload.exe"
 
 let gaussianModelForSimpleWorkload() : GaussianModel = 
-    let squaredExponentialKernelParameters : SquaredExponentialKernelParameters = { LengthScale = 1.0; Variance = 0.75 }
+    let squaredExponentialKernelParameters : SquaredExponentialKernelParameters = { LengthScale = 1.0; Variance = 1.0 }
     let gaussianProcess : GaussianProcess =  createProcessWithSquaredExponentialKernel squaredExponentialKernelParameters
     let queryProcessInfo : QueryProcessInfo = { WorkloadPath = workloadPath; ApplyArguments = (fun input -> $"--input {input}") } 
     let queryProcessObjectiveFunction : ObjectiveFunction = (QueryProcessByElapsedTimeInSeconds queryProcessInfo)
@@ -206,10 +218,113 @@ let optima   : OptimaResults = findOptima model Goal.Min iterations
 printfn "Optima: Simple Workload Time is minimized when the input is %A at %A seconds" optima.Optima.X optima.Optima.Y
 ```
 
-``Optima: Simple Workload Time is minimized when the input is 1.362725451 at 0.209 seconds``
+The result was: ``Optima: Simple Workload Time is minimized when the input is 1.362725451 at 0.209 seconds``
+
+A gif of the algorithm is:
+
+![Simple Workload](Experiments/SimpleWorkload/resources/Combined.gif)
+
+The inputs here didn't require a highly precise resolution as the previous experiment and therefore, I set them to a moderately high amount of 500. I had to play around with the number of iterations as this was a more complex objective function in the eyes of the surrogate model; my strategy here was to start high and make my way to an acceptable amount. The other parameters i.e. Length Scale and Variance were the same, as before. 
+
+It's worth mentioning that the ``QueryProcessInfo`` type is used to specify the path to the workload and a mechanism to set the argument for the input we are pivoting on.
+
+### Experiment 3: Minimizing the Garbage Collection (GC) Pause Time % By Varying The Number of Heaps 
+
+The workload code that can be found [here](src/Workloads/HighMemory_BurstyAllocations/Program.cs) first launches a separate process that induces a state of high memory; the source code for the high memory load inducer can be found [here](https://github.com/dotnet/performance/blob/main/src/benchmarks/gc/src/exec/env/make_memory_load.c). Subsequently, a large number of allocations are made intermittently. While this workload is executing, we will have been taking a ETW Trace that'll contain the GC Pause Time %. The idea here is to stress the memory of a machine and see how bursty allocations perform with varying Garbage Collection heaps the value of which, is controlled by 2 environment variables: ``COMPlus_GCHeapCount`` and ``COMPlus_GCServer`` where the former needs to be specified in Hexadecimal format and the latter is a boolean (0 or 1).
+
+The code to get this experiment going can be found [here](Experiments/HighMemoryBurstyAllocations/) but the following are pertinent excerpts:
+
+```fsharp
+let iterations = 15 
+let resolution = 500
+ 
+let getHighMemoryBurstyAllocationsModel() : GaussianModel =
+    let gaussianProcess : GaussianProcess = createProcessWithSquaredExponentialKernel { LengthScale = 0.1;  Variance = 1. }
+
+    let queryProcessByTraceLog : QueryProcessInfoByTraceLog = 
+        { 
+            WorkloadPath = WORKLOAD_PATH 
+            ApplyArguments = (fun input -> "") 
+            ApplyEnvironmentVariables = (fun input -> [("COMPlus_GCHeapCount", ( (int ( Math.Round(input))).ToString("X") )); ("COMPlus_GCServer", "1")] |> Map.ofList)
+            TraceLogApplication = (fun (traceLog : Microsoft.Diagnostics.Tracing.Etlx.TraceLog) ->
+
+                let eventSource : Microsoft.Diagnostics.Tracing.Etlx.TraceLogEventSource = traceLog.Events.GetSource()
+
+                eventSource.NeedLoadedDotNetRuntimes() |> ignore
+                eventSource.Process()                  |> ignore
+
+                let burstyAllocatorProcess : TraceProcess = eventSource.Processes() |> Seq.find(fun p -> p.Name.Contains "HighMemory_BurstyAllocations")
+                let managedProcess         : TraceLoadedDotNetRuntime = burstyAllocatorProcess.LoadedDotNetRuntime()
+                managedProcess.GC.Stats().GetGCPauseTimePercentage()
+            )
+
+            TraceParameters = "/GCCollectOnly"
+            OutputPath      = Path.Combine( basePath, "Traces" )
+        }
+
+    let queryProcessObjectiveFunction : ObjectiveFunction = QueryProcessByTraceLog queryProcessByTraceLog
+    createModelWithDiscreteInputs gaussianProcess queryProcessObjectiveFunction 1 System.Environment.ProcessorCount resolution
+
+let model    : GaussianModel      = getHighMemoryBurstyAllocationsModel()
+let optima   : OptimaResults      = findOptima model Goal.Min iterations
+printfn "Optima: GC Pause Time Percentage is minimized when the input is %A at %A" optima.Optima.X optima.Optima.Y
+```
+
+The result of this experiment is: ``Optima: GC Pause Time Percentage is minimized when the input is 2 at 4.362703288``
+
+And the gif of the charts is:
 
 
-### Experiment 3: Objective Function is to Minimize ``Sin(x)``
+To confirm the results, we can run the experiment with all possible heaps, a value bounded by the number of processors; on my machine, I have a total of 20 logical processors. The following code can be used to actually test for the Minima the results of which are given right after by using the Etlx API as a part of the Trace Event library:
+
+```fsharp
+let pathsToTraces : string seq = Directory.GetFiles(Path.Combine(basePath, "Traces_All"), "*.etlx")
+
+let getGCPauseTimePercentage(pathOfTrace : string) : double =
+    use traceLog : Microsoft.Diagnostics.Tracing.Etlx.TraceLog = new Microsoft.Diagnostics.Tracing.Etlx.TraceLog(pathOfTrace)
+    let eventSource : Microsoft.Diagnostics.Tracing.Etlx.TraceLogEventSource = traceLog.Events.GetSource()
+
+    eventSource.NeedLoadedDotNetRuntimes() |> ignore
+    eventSource.Process()                  |> ignore
+
+    let burstyAllocatorProcess : TraceProcess = eventSource.Processes() |> Seq.find(fun p -> p.Name.Contains "HighMemory_BurstyAllocations")
+    let managedProcess         : TraceLoadedDotNetRuntime = burstyAllocatorProcess.LoadedDotNetRuntime()
+    managedProcess.GC.Stats().GetGCPauseTimePercentage()
+
+pathsToTraces
+|> Seq.iter(fun p -> (
+    printfn "Heap Count: %A - Percent Time in GC: %A" (Path.GetFileNameWithoutExtension(p)) (getGCPauseTimePercentage p)
+))
+```
+
+| Heap Count | Percentage Pause Time In GC |
+| ---------- | --------------------------- |
+|1 | 5.560138489 |
+|2 | 4.362703288 |
+|3 | 9.637953564 |
+|4 | 6.918216393 |
+|5 | 8.237923925 |
+|6 | 8.489095309 |
+|7 | 9.896900052 |
+|8 | 7.143749098 |
+|9 | 6.821891076 |
+|10 | 7.843345234 |
+|11 | 6.97647052 |
+|12 | 11.0452987 |
+|13 | 9.234515549 |
+|14 | 9.760930152 |
+|15 | 5.23704259 |
+|16 | 5.324252566 |
+|17 | 5.202236787 |
+|18 | 7.426270059 |
+|19 | 6.550077543 |
+|20 | 8.678660242 |
+
+Clearly, our algorithm was able to get to the Min for Heap 2.
+
+
+
+#### Event Tracing For Windows (ETW) Primer
 
 
 ### Implementation Of Bayesian Optimization In FSharp
@@ -257,6 +372,8 @@ With:
  - $σ^2$ the overall variance (is also known as amplitude or the vertical variance).
  - $\ell$ the length scale gives us the smoothness between the two points.
 
+TODO: Model Fit and Prediction.
+
 #### Acquisition Function
 
 Where to search next is dictated by the acquisition function. This function conducts a trade off between "Exploitation and Exploration". __Exploitation__ means we are sampling or choosing points where the surrogate model is know to produce high objective function result. __Exploration__ means we are sampling or choosing points we haven't explored before or where the prediction uncertainty is high. The point where the acquisition function is maximized is the next point to sample.
@@ -268,6 +385,8 @@ $$ \operatorname{EI}(\mathbf{x}) = \mathbb{E}\max(f(\mathbf{x}) - f(\mathbf{x}^+
  and the analytic solution using a Gaussian Process of this is as follows:
 
 ```fsharp
+// src/Optimization.Core/
+
 let Δ                   : double = predictionResult.Mean - optimumValue - explorationParameter
 let σ                   : double = (predictionResult.UpperBound - predictionResult.LowerBound) / 2.
 let z                   : double = Δ / σ 
@@ -280,20 +399,41 @@ The idea here is that based on the predicted result from the surrogate function,
 
 #### The Bayesian Optimization Loop 
 
-Now that we have gone over the 
+As described above, in the bayesian optimization loop we do the following:
 
-#### ETW Events
+1. Make predictions using the surrogate model. 
+2. Based on the predictions from 1., apply the acquisition function.
+3. Identify the point that maximizes the acquisition function. 
+4. Update the model with the new data point.
 
-## Usage of FSharp's Features
+In addition to these steps, we are also keeping track of the intermediate steps of the calculation (this detail has been omitted below for the sake of simplicity).
 
-1. Domain Modeling
-2. Partial Application
-3. Type Aliasing
-4. Pattern Matching
-5. Conditional Mutability
-6. Async and Seq Computational Expressions
+```fsharp
+// src/Optimization.Core/Model.fs
 
-### PolyGlot Notebooks
+// Iterate with each step to find the most optimum next point.
+seq { 0..(iterations - 1) }
+|> Seq.iter(fun iteration -> (
+
+    // Select next point to sample via the surrogate function i.e. estimation of the objective that maximizes the acquisition function.
+    let predictions                 : PredictionResult seq = predict model
+    let acquisitionResults          : AcquisitionFunctionResult seq = predictions.Select(fun e -> 
+        (expectedImprovement model.GaussianProcess e goal DEFAULT_EXPLORATION_PARAMETER ))
+    let optimumValueFromAcquisition : AcquisitionFunctionResult = acquisitionResults.MaxBy(fun e -> e.AcquisitionScore)
+    let nextPoint                   : double = optimumValueFromAcquisition.Input
+
+    let result : ModelResult = 
+        {
+            ObservedDataPoints = copyBuffer.ToList() 
+            AcquisitionResults = acquisitionResults.ToList()
+            PredictionResults  = predictions.ToList() 
+        }
+
+    // Add the point to the model if it already hasn't been added.
+    if model.GaussianProcess.ObservedDataPoints.Any(fun d -> d.X = nextPoint) then ()
+    else applyFitToModel nextPoint
+))
+```
 
 ## Experience Developing in FSharp
 
@@ -303,9 +443,11 @@ Using F# for this project has been nothing short of **awesome**! After working o
 
 Domain Modeling using Discriminated Unions and Record Types, Pattern Matching and Partial Application are the 3 of my favorite features I had the most fun using. My favorite functional programming concept is one of the core ones: how composing functions with other functions is a simple yet powerful foundation to build complex features on. 
 
-As always, I am **super** open to feedback as to how I have made use of F# developing this project and so, if any one has suggestions of how I could developed this any better, I am all ears! 
+As always, I am **super** open to feedback as to how I have made use of F# developing this project and so, if anyone has suggestions of how I could developed this any better, I am all ears! 
 
 ## Conclusion
+
+Thanks to [Pavel Koryakin](https://github.com/koryakinp) whose [repository](https://github.com/koryakinp/GP) gave me a perfectly apt place to start with developing my own.
 
 ## 6 Years Going Strong!
 
@@ -330,3 +472,4 @@ It has been 6 years of submissions to the FSharp Advent event and it has been an
 5. [Gaussian Processes for Dummies](http://katbailey.github.io/post/gaussian-processes-for-dummies/)
 6. [Heavily Inspired by this Repository](https://github.com/koryakinp/GP)
 7. [More About the Squared Exponential Kernel](https://peterroelants.github.io/posts/gaussian-process-kernels/#Exponentiated-quadratic-kernel)
+8. [A Good Primer To Get Started With ETW Events](https://medium.com/@alexkhanin/getting-started-with-event-tracing-for-windows-in-c-8d866e8ab5f2)

@@ -466,3 +466,6 @@ target/
 .local-chromium
 
 *launchSettings.json
+
+*etlx
+*etl

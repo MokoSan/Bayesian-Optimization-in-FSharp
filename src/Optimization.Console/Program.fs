@@ -104,5 +104,3 @@ let charts : GenericChart.GenericChart seq =
     chartAllResults optima 
 
 saveChart "./Saved" chart |> ignore
-//saveCharts "./Base" charts
-//saveGif "./Base" "./Base/Combined.gif"

@@ -2,4 +2,5 @@
 
 This folder contains experiments conducted with different objective functions and the optimization library.
 
-[Sin](Sin/Sin.ipynb)
+1. [Sin](Sin/Sin.ipynb)
+2. [Simple Workload](SimpleWorkload/SimpleWorkload.ipynb)

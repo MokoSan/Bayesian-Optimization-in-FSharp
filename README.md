@@ -1,8 +1,10 @@
 # Bayesian Optimization For Performance Tuning in FSharp
 
-This repository encompasses the work I did for my FSharp Advent 2022 submission that write-up for which can be found [here](AdventSubmission.md).
+This repository encompasses the work I did for my FSharp Advent 2022 submission that write-up for which can be found [here](AdventSubmission.md); the submission is a good starting point to understand the rationale and underlying concepts.
 
-To get started with viewing the experiments, run [Install.cmd](Install.cmd) that will install the prerequisites to run [PolyGlot Notebooks](https://devblogs.microsoft.com/dotnet/dotnet-interactive-notebooks-is-now-polyglot-notebooks/).
+## Prerequisites
+
+__Experiments__: To get started with viewing the experiments, run [Install.cmd](Install.cmd) that will install the prerequisites to run [PolyGlot Notebooks](https://devblogs.microsoft.com/dotnet/dotnet-interactive-notebooks-is-now-polyglot-notebooks/).
 
 ## Basic Usage
 
@@ -19,6 +21,8 @@ let model         : GaussianModel = gaussianModelForSin()
 let optimaResults : OptimaResults = findOptima model Goal.Max 10
 printfn "Optima: Sin(x) is maximized when x = %A at %A" optimaResults.Optima.X optimaResults.Optima.Y
 ```
+
+## Experiments To Highlight Use Cases
 
 ## References
 
@@ -44,7 +48,7 @@ printfn "Optima: Sin(x) is maximized when x = %A at %A" optimaResults.Optima.X o
 7. ~~Visualization.~~
    1. ~~Save plot as png.~~
    2. ~~Creating Gif Out Of Iterations.~~
-8. Creating Notebooks:
+8. Creating Notebooks / Experimental Console Apps:
    1. ~~Sin Function.~~
    2. ~~Simple Workload.~~
    3. High Memory Load Based Bursty Allocations. 
@@ -54,4 +58,4 @@ printfn "Optima: Sin(x) is maximized when x = %A at %A" optimaResults.Optima.X o
    1. Possibly add computation expressions.
    2. Possibly add ROP-esque behavior.
 11. Finish writing the article.
-12. Optional Stopping.
+12. Early Stopping.
