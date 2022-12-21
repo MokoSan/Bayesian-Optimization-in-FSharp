@@ -56,7 +56,7 @@ let test_model_simpleworkload_1() : GaussianModel =
             CovarianceMatrix = Matrix<double>.Build.Dense(1, 1)
         }
 
-    let queryProcessInfo : QueryProcessInfo = { WorkloadPath = workload; ApplyArguments = (fun input -> $"--input {input}") } 
+    let queryProcessInfo : QueryProcessInfo = { WorkloadPath = workload; ApplyArguments = (fun input -> $"--input {input}"); } 
     let queryProcessObjectiveFunction : ObjectiveFunction = (QueryProcessByElapsedTimeInSeconds queryProcessInfo)
     createModel gaussianProcess queryProcessObjectiveFunction 0 5 30
 

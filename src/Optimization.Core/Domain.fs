@@ -36,8 +36,8 @@ and ObjectiveFunction =
     | QueryProcessByTraceLog             of QueryProcessInfoByTraceLog
 and QueryProcessInfo  = 
     {
-        WorkloadPath   : WorkloadPath
-        ApplyArguments : ApplyArguments
+        WorkloadPath       : WorkloadPath
+        ApplyArguments     : ApplyArguments
     }
 and QueryProcessInfoByTraceLog  = 
     {

@@ -4,7 +4,7 @@
 
 ## Introduction
 
-For my 6th F# Advent submission (6 years in a row!!), I worked on combining what I learnt from my last 2 submissions: [2020: Bayesian Inference in FSharp](http://bit.ly/3hhhRjq) and [2021: Perf Avore: A Performance Analysis and Monitoring Tool in FSharp](https://github.com/MokoSan/PerfAvore/blob/main/AdventSubmission.md#perf-avore-a-performance-analysis-and-monitoring-tool-in-fsharp) to develop a Bayesian Optimization algorithm in F# to solve global optimization problems. This algorithm is compatible with complex objective functions such as those dictated by the results of profiles via Event Tracing for Windows (ETW), a Windows profiling mechanism for troubleshooting and diagnostics, in an effort to discern the best parameters to use based on the specified workload. I plan to demonstrate how I applied the algorithm to various experiments to obtain the best parameters in some practical cases and highlight how I made use of F#'s functional features. In terms of using F#, I have had a fabulous experience, as always! I have expounded on this [here](#experience-developing-in-fsharp).
+For my 6th F# Advent submission (6 years in a row!!), I worked on combining what I learnt from my last 2 submissions: [2020: Bayesian Inference in FSharp](http://bit.ly/3hhhRjq) and [2021: Perf Avore: A Performance Analysis and Monitoring Tool in FSharp](https://github.com/MokoSan/PerfAvore/blob/main/AdventSubmission.md#perf-avore-a-performance-analysis-and-monitoring-tool-in-fsharp) to develop a Bayesian Optimization algorithm in F# to solve global optimization problems for a single variable. This algorithm is compatible with complex black-box objective functions such as those dictated by the results of profiles via Event Tracing for Windows (ETW), a Windows profiling mechanism for troubleshooting and diagnostics, in an effort to discern the best parameters to use based on the specified workload or process. In this submission, I plan to demonstrate how I developed and applied the Bayesian Optimization algorithm to various experiments to obtain the best parameters and highlight how I made use of F#'s functional features. In terms of using F#, I have had a fabulous experience, as always! I have expounded on this [here](#experience-developing-in-fsharp).
 
 If some or all parts of the aforementioned aspects of the introduction so far seem cryptic, fret not as I plan to cover these topics in detail. The intended audience of this submission is any developer, data scientist or performance engineer interested in how the Bayesian Optimization algorithm is implemented in a functional-first way.
 
@@ -15,7 +15,7 @@ To be concrete, the goals of this submission are:
 1. [To Describe Bayesian Optimization](#bayesian-optimization). 
 2. [Present the Multiple Applications of the Bayesian Optimization from Simple to more Complex](#experiments):
    1. [__Maximizing a Trigonometric Function__: Finding the maxima of the ``Sin`` function between -π and π.](#experiment-1-objective-function-is-to-maximize-sinx)
-   2. [__Minimizing The Wall Clock Time of A Simple Command Line App__: Finding the minima of the wall clock time of execution based on the input.](#experiment-2-minimizing-the-wall-clock-time-of-a-simple-command-line-app)
+   2. [__Minimizing The Wall Clock Time of A Simple Command Line App__: Finding the minima of the wall clock time of execution of an independent process based on the input.](#experiment-2-minimizing-the-wall-clock-time-of-a-simple-command-line-app)
    3. __The Percent of Time Spent during Garbage Collection For a High Memory Load Case With Bursty Allocations__: Finding the minima of the percent of time spent during garbage collection based on pivoting on the number of Garbage Collection Heaps or Threads using Traces obtained via Event Tracing For Windows (ETW). 
       1. Give a short primer on ETW Profiling.
 3. [Describe the Implementation of the Bayesian Optimization Algorithm and Infrastructure](#implementation-of-bayesian-optimization-in-fsharp)
@@ -26,12 +26,12 @@ The goal of any mathematical optimization function is the selection of the best 
 
 $$ \arg \max_{x} f(x) $$
 
-or finding the argument 'x' that maximizes (minimization is just the negative of maximization) the function, ``f(x)`` known more generally as the __optima__. The "direction" of the optimization i.e. whether we are minimizing or maximizing can be modeled as "Goal" such as:
+or finding the argument $x$ that maximizes (minimization is just the negative of maximization) the function, $f(x)$ known more generally as the __optima__. The "direction" of the optimization i.e. whether we are minimizing or maximizing can be modeled as "Goal" such as:
 
 ```fsharp
 type Goal =
     | Max
-    | Mi
+    | Min
 ```
 
 The way I understood this algorithm was through a [socratic approach](https://en.wikipedia.org/wiki/Socratic_method) and here are the questions I had when I first started that I gradually answered:
@@ -39,6 +39,8 @@ The way I understood this algorithm was through a [socratic approach](https://en
 ### What is Bayesian Optimization And Why Use It?
 
 Bayesian Optimization is an iterative optimization algorithm used to find the most optimal element like any other optimization algorithm however, where it shines in comparison to others is when the criterion or objective function is a black box function. A black box function indicates the prospect of a lack of an analytic expression or known mathematical formula for the objective function and/or details about other properties for example, knowing if the derivative exists for the function so as to make use of other optimization techniques such as [Stochastic Gradient Descent](https://en.wikipedia.org/wiki/Stochastic_gradient_descent).
+
+To contrast with 2 other optimization techniques namely, **Grid Search Optimization** and **Random Search Optimization**.
 
 To summarize, Bayesian Optimization aims to, with the fewest number of iterations, find the global optima of a function that could be a black box based function.
 
@@ -64,11 +66,35 @@ The efficiency of the Bayesian Optimization algorithm stems from the use of Baye
 
 To elaborate just a bit more here (there is a section below under [Gaussian Processes](#gaussian-processes) that covers the model most commonly used for this purpose of approximating the objective function), we choose a surrogate model that helps us with approximating the objective function that's initialized based on some prior information and is updated as and when we sample or observe new data points and with each subsequent iteration, we are constructing a posterior distribution that is more closely representative of the actual objective function whose form can be an unknown.
 
-Now that a basic definition and reason for using Bayesian Optimization is presented, I want to provide some pertinent examples that'll help with contextualizing the associated ideas.
+### What are some of the disadvantages of the Bayesian Optimization Algorithm?
+
+Some disadvantages include:
+
+1. __Results Are Extremely Sensitive To Model Parameters__: Having some prior knowledge of the shape of the objective function is helpful as otherwise, choosing the wrong parameters results in a need for a higher number of iterations or sometimes convergence to the optima isn't even possible. The previous implication requires "optimization of the optimizer". Additionally, this effect is amplified with a inputs of higher dimensions i.e. you have to carefully choose the model parameters for a lot of variables. As we will see later, we need to make some reasonable choices in terms of:
+   1. The Kernel Parameters.
+   2. Resolution of the Initial Data or how granular our model should be in terms of data points.
+   3. Number of iterations. 
+2. __Model Estimation Takes Time__: Getting the surrogate model to a point where it is behaving like a reasonable approximation of the true objective function can take quite a few iterations, which implies more time spent to get the result. 
+3. __Naive Implementation Isn't Parallelizable By Default__: We need to add more complexity to the model to be able to parallelize the algorithm.
+
+### How Do I Interpret the Charts of the Algorithm Below? 
+
+An example of a chart the algorithm is:
+
+![Chart](Experiments/Sin/resources/5.png)
+
+Here are the details:
+
+1. __Predictions__: The predictions represent the mean of the results obtained from the underlying model that's the approximate of the unknown objective function. This model is also known as the Surrogate Model and more details about this can be found [here](#surrogate-model)
+2. __Acquisition Results__ series represents the acquisition function whose maxima indicates where it is best to search. More details on how the next point to search is discerned can be found [here](#acquisition-function).
+3. __Next Point__: The next point is derived from the maximization of the acquisition function and points to where we should sample next.
+4. __Observed Data__: The observed data is the data collected from iteratively maximizing the acquisition function.
+
+Now that a basic definition, reason and other preliminary questions and answers for using Bayesian Optimization are presented, I want to provide some pertinent examples that'll help with contextualizing the associated ideas and highlight the usage of the library.
 
 ## Experiments
 
-In this section, I plan to go over 3 main experiments conducted using the optimization algorithm to demonstrate the efficacy and ease of use of the library.
+In this section, I plan to go over 3 main experiments conducted using the optimization algorithm to demonstrate the efficacy of the algorithm and ease of use of the library.
 
 ### Experiment 1: Maximizing a Trigonometric Function: Finding the maxima of the ``Sin`` function between π and -π.
 
@@ -100,7 +126,7 @@ printfn "Optima: Sin(x) is maximized when x = %A at %A" optimaResults.Optima.X o
 
 The result of the experiment is: ``Optima: Sin(x) is maximized when x = 1.570717783 at 0.9999999969``. 
 
-The optima (maxima, in this case) is very close to $\frac{\pi}{2} \approx 1.57079632679$ where $sin(x) = 1$; this was all achieved within only 10 iterations with a high enough resolution and therefore, we know this algorithm is optimizing as expected. To help better visualize what's happening under the hood, I have created some charting helpers that chart the pertinent series for each iteration and wrap them up into a gif. These charts can be found [here](Experiments/Sin/resources/).
+The optima (maxima, in this case) is very close to $\frac{\pi}{2} \approx 1.57079632679$ where $sin(x) = 1$; this was all achieved within only 10 iterations with a high enough resolution i.e. with 20,000 points between $-\pi$ and $\pi$ and therefore, we know this algorithm is optimizing as expected. To help better visualize what's happening under the hood, I have created some charting helpers that chart the pertinent series for each iteration and wrap them up into a gif. These charts can be found [here](Experiments/Sin/resources/).
 
 ```fsharp
 [<Literal>]
@@ -117,16 +143,71 @@ The output gif that's the combination of the iterations is:
 
 ![Sin Function](./Experiments/Sin/resources/Combined.gif)
 
-#### Interpretation of the Charts 
-
-The following are the details of each of the series of the charts.
-
-1. __Predictions__: The predictions represent the mean of the results obtained from the underlying model that's the approximate of the unknown objective function. This model is also known as the Surrogate Model and more details about this can be found [here](#surrogate-model)
-2. __Acquisition Results__ series represents the acquisition function whose maxima indicates where it is best to search. More details on how the next point to search is discerned can be found [here](#acquisition-function).
-3. __Next Point__: The next point is derived from the maximization of the acquisition function and points to where we should sample next.
-4. __Observed Data__: The observed data is the data collected from iteratively maximizing the acquisition function.
+The function is smooth and therefore, the length scale and variance of 1. respectively are sufficient to get us to a good point where we achieve the optima in a few number of iterations. The caveat here, however, was the selection of the resolution
 
 ### Experiment 2: Minimizing The Wall Clock Time of A Simple Command Line App
+
+The Objective Function is the wall clock time from running a C# program that sleeps for a hard-coded amount of time based on a given input that we are trying to minimize. The full code is available [here](https://github.com/MokoSan/Bayesian-Optimization-in-FSharp/blob/main/src/Workloads/SimpleWorkload/Program.cs).
+
+The gist of the trivial algorithm is the following where we sleep for the shortest amount of time if the input is between 1 and 1.5, a slightly shorter amount of time if the input is >= 1.5 but < 2.0 and the most amount of time in all other cases. The premise here is to try and see if we are able to get the optimization algorithm detect the inputs that trigger the lowest amount of sleep time and thereby, the minima of the wall clock time of the program.
+
+The aforementioned logic looks something like:
+
+```csharp
+private const int DEFAULT_SLEEP_MSEC    = 2000;
+private const int FAST_SLEEP_MSEC       = 1000;
+private const int FASTEST_SLEEP_MSEC    = 50;
+
+    switch (o.Input)
+    {
+        case double n when n >= 1.0 && n < 1.5:
+            {
+                Thread.Sleep(FASTEST_SLEEP_MSEC);
+                break;
+            }
+
+        case double n when n >= 1.5 && n < 2.0:
+            {
+                Thread.Sleep(FAST_SLEEP_MSEC);
+                break;
+            }
+
+        default:
+            {
+                Thread.Sleep(DEFAULT_SLEEP_MSEC);
+                break;
+            }
+    }
+```
+
+The setup of the experiment is as follows details of which can be found in the PolyGlot Notebook [here](Experiments/SimpleWorkload/SimpleWorkload.ipynb).
+
+```fsharp
+
+open Optimization.Domain
+open Optimization.Model
+open Optimization.Charting
+
+let iterations : int = 20 
+let resolution : int = 500 
+
+[<Literal>]
+let workloadPath = @"..\..\src\Workloads\SimpleWorkload\bin\Release\net7.0\SimpleWorkload.exe"
+
+let gaussianModelForSimpleWorkload() : GaussianModel = 
+    let squaredExponentialKernelParameters : SquaredExponentialKernelParameters = { LengthScale = 1.0; Variance = 0.75 }
+    let gaussianProcess : GaussianProcess =  createProcessWithSquaredExponentialKernel squaredExponentialKernelParameters
+    let queryProcessInfo : QueryProcessInfo = { WorkloadPath = workloadPath; ApplyArguments = (fun input -> $"--input {input}") } 
+    let queryProcessObjectiveFunction : ObjectiveFunction = (QueryProcessByElapsedTimeInSeconds queryProcessInfo)
+    createModel gaussianProcess queryProcessObjectiveFunction 0 5 resolution 
+
+let model    : GaussianModel = gaussianModelForSimpleWorkload()
+let optima   : OptimaResults = findOptima model Goal.Min iterations 
+printfn "Optima: Simple Workload Time is minimized when the input is %A at %A seconds" optima.Optima.X optima.Optima.Y
+```
+
+``Optima: Simple Workload Time is minimized when the input is 1.362725451 at 0.209 seconds``
+
 
 ### Experiment 3: Objective Function is to Minimize ``Sin(x)``
 

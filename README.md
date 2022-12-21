@@ -54,3 +54,4 @@ printfn "Optima: Sin(x) is maximized when x = %A at %A" optimaResults.Optima.X o
    1. Possibly add computation expressions.
    2. Possibly add ROP-esque behavior.
 11. Finish writing the article.
+12. Optional Stopping.
