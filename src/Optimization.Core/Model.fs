@@ -13,6 +13,13 @@ open Domain
 [<Literal>]
 let DEFAULT_EXPLORATION_PARAMETER : double = 0.01
 
+let createProcessWithSquaredExponentialKernel (squaredExponentialKernelParameters: SquaredExponentialKernelParameters) : GaussianProcess =
+    { 
+        KernelFunction     = SquaredExponentialKernel squaredExponentialKernelParameters 
+        ObservedDataPoints = List<DataPoint>()
+        CovarianceMatrix   = Matrix<double>.Build.Dense(1, 1)
+    }
+
 let fitToModel (model : GaussianModel) (input : double) : unit =
 
     // If the data point has already been explored, don't spend cycles doing it again.

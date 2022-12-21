@@ -9,6 +9,9 @@ open Plotly.NET.ImageExport
 open ImageMagick
 
 let chartResult (result : ModelResult) (nextPoint : Nullable<double>) (title : string) : GenericChart.GenericChart  =  
+
+    Defaults.DefaultTemplate <- ChartTemplates.plotly
+
     let observedDataPoints : GenericChart.GenericChart =
         let ordered : DataPoint seq = result.ObservedDataPoints.OrderBy(fun o -> o.X)
         Chart.Line(
@@ -17,6 +20,7 @@ let chartResult (result : ModelResult) (nextPoint : Nullable<double>) (title : s
             Name = "Observed Data",
             ShowMarkers=true
         )
+        |> Chart.withAxisAnchor(Y = 1)
 
     let predictedMean : GenericChart.GenericChart = 
         let ordered : PredictionResult seq = result.PredictionResults.OrderBy(fun a -> a.Input)
@@ -24,8 +28,11 @@ let chartResult (result : ModelResult) (nextPoint : Nullable<double>) (title : s
             ordered.Select(fun a -> a.Input),
             ordered.Select(fun a -> a.Mean),
             Name = "Predictions",
+            MarkerSymbol = StyleParam.MarkerSymbol.Square,
             ShowMarkers = true
         )
+        |> Chart.withLineStyle(Width = 2., Dash = StyleParam.DrawingStyle.Dot)
+        |> Chart.withAxisAnchor(Y = 1)
 
     let acquisitionResultsScatter : GenericChart.GenericChart = 
         let ordered : AcquisitionFunctionResult seq = result.AcquisitionResults.OrderBy(fun a -> a.Input)
@@ -34,14 +41,15 @@ let chartResult (result : ModelResult) (nextPoint : Nullable<double>) (title : s
             ordered.Select(fun a -> a.AcquisitionScore),
             Name = "Acquisition Results"
         )
+        |> Chart.withAxisAnchor(Y = 2)
 
     let nextPointScatter : GenericChart.GenericChart = 
         match nextPoint.HasValue with
         | true -> 
             Chart.Line( 
                 [nextPoint.Value; nextPoint.Value], 
-                [Math.Min(result.ObservedDataPoints.Min(fun o -> o.Y), result.AcquisitionResults.Min(fun o -> o.AcquisitionScore)); 
-                    Math.Max(result.ObservedDataPoints.Max(fun o -> o.Y), result.AcquisitionResults.Max(fun o -> o.AcquisitionScore))],
+                [Math.Min(result.ObservedDataPoints.Min(fun o -> o.Y), result.PredictionResults.Min(fun o -> o.Mean)); 
+                    Math.Max(result.ObservedDataPoints.Max(fun o -> o.Y), result.PredictionResults.Max(fun o -> o.Mean))],
                 Name = "Next Point"
             )
         | false ->
@@ -50,10 +58,23 @@ let chartResult (result : ModelResult) (nextPoint : Nullable<double>) (title : s
                 [],
                 Name = "Next Point"
             )
+        |> Chart.withAxisAnchor(Y = 1)
 
-    [observedDataPoints; predictedMean; acquisitionResultsScatter; nextPointScatter]
-    |> Chart.combine
-    |> Chart.withTitle title
+    let nonAcquisitionChart : GenericChart.GenericChart =
+        [observedDataPoints; predictedMean; nextPointScatter]
+        |> Chart.combine
+        |> Chart.withTitle title
+
+    let acquisitionChart : GenericChart.GenericChart = 
+        [acquisitionResultsScatter]
+        |> Chart.combine
+
+    let grid : GenericChart.GenericChart =
+        [ nonAcquisitionChart; acquisitionChart ]
+        |> Chart.SingleStack(Pattern = StyleParam.LayoutGridPattern.Coupled)
+
+    grid
+
 
 let chartAllResults (results : OptimaResults) : GenericChart.GenericChart seq =
     let intermediateCharts : GenericChart.GenericChart seq = 
@@ -92,6 +113,7 @@ let saveGif (baseOutputPath: string) (gifSavePath : string) : unit =
         images.[images.Count - 1].AnimationDelay <- 100
     ))
 
+    // Delay the last iteration to underscore the optima.
     images.[images.Count - 1].AnimationDelay <- 500
 
     images.Optimize() |> ignore
