@@ -14,8 +14,8 @@ To be concrete, the goals of this submission are:
 
 1. [To Describe Bayesian Optimization](#bayesian-optimization). 
 2. [Present the Multiple Applications of the Bayesian Optimization from Simple to more Complex](#experiments):
-   1. [__Optimizing a Trigonometric Function__: Finding the maxima of the ``Sin`` function between -π and π.](#experiment-1-objective-function-is-to-maximize-sinx)
-   2. __The Wall Clock Time of A Simple Command Line App__: Finding the minima of the wall clock time of execution based on the input. 
+   1. [__Maximizing a Trigonometric Function__: Finding the maxima of the ``Sin`` function between -π and π.](#experiment-1-objective-function-is-to-maximize-sinx)
+   2. [__Minimizing The Wall Clock Time of A Simple Command Line App__: Finding the minima of the wall clock time of execution based on the input.](#experiment-2-minimizing-the-wall-clock-time-of-a-simple-command-line-app)
    3. __The Percent of Time Spent during Garbage Collection For a High Memory Load Case With Bursty Allocations__: Finding the minima of the percent of time spent during garbage collection based on pivoting on the number of Garbage Collection Heaps or Threads using Traces obtained via Event Tracing For Windows (ETW). 
       1. Give a short primer on ETW Profiling.
 3. [Describe the Implementation of the Bayesian Optimization Algorithm and Infrastructure](#implementation-of-bayesian-optimization-in-fsharp)
@@ -54,7 +54,9 @@ There are 3 main components:
    3. Identify the point that maximizes the acquisition function. 
    4. Update the model with the new data point.
 
-![Bayesian Optimization Loop](resources/FullLoop.png)
+Diagrammatically,
+
+![Bayesian Optimization Loop](resources/FullLoop.Gif)
 
 ### What is 'Bayesian' About the Bayesian Optimization Algorithm? 
 
@@ -68,7 +70,7 @@ Now that a basic definition and reason for using Bayesian Optimization is presen
 
 In this section, I plan to go over 3 main experiments conducted using the optimization algorithm to demonstrate the efficacy and ease of use of the library.
 
-### Experiment 1: Optimizing a Trigonometric Function: Finding the maxima of the ``Sin`` function between π and -π.
+### Experiment 1: Maximizing a Trigonometric Function: Finding the maxima of the ``Sin`` function between π and -π.
 
 ``Sin(x)`` is a simple Trigonometric Function whose maximum value is 1 at $\frac{\pi}{2}$ if the range is between $-\pi$ and $\pi$. Since we know the analytical form of the function, this simple experiment can highlight the correctness of the algorithm (within an acceptable margin of error). A [Polyglot notebook](https://devblogs.microsoft.com/dotnet/dotnet-interactive-notebooks-is-now-polyglot-notebooks/) of this experiment can be found [here](./Experiments/Sin/Sin.ipynb). 
 
@@ -96,7 +98,7 @@ let optimaResults : OptimaResults = findOptima model Goal.Max iterations
 printfn "Optima: Sin(x) is maximized when x = %A at %A" optimaResults.Optima.X optimaResults.Optima.Y
 ```
 
-The result of the experiment is: ``Optima: Sin(x) is maximized when x = 1.570717783 at 0.9999999969`. 
+The result of the experiment is: ``Optima: Sin(x) is maximized when x = 1.570717783 at 0.9999999969``. 
 
 The optima (maxima, in this case) is very close to $\frac{\pi}{2} \approx 1.57079632679$ where $sin(x) = 1$; this was all achieved within only 10 iterations with a high enough resolution and therefore, we know this algorithm is optimizing as expected. To help better visualize what's happening under the hood, I have created some charting helpers that chart the pertinent series for each iteration and wrap them up into a gif. These charts can be found [here](Experiments/Sin/resources/).
 
@@ -124,10 +126,7 @@ The following are the details of each of the series of the charts.
 3. __Next Point__: The next point is derived from the maximization of the acquisition function and points to where we should sample next.
 4. __Observed Data__: The observed data is the data collected from iteratively maximizing the acquisition function.
 
-#### Rationale for the Parameter Choices
-
-
-### Experiment 2: Objective Function is to Minimize ``Sin(x)``
+### Experiment 2: Minimizing The Wall Clock Time of A Simple Command Line App
 
 ### Experiment 3: Objective Function is to Minimize ``Sin(x)``
 
@@ -188,8 +187,8 @@ $$ \operatorname{EI}(\mathbf{x}) = \mathbb{E}\max(f(\mathbf{x}) - f(\mathbf{x}^+
  and the analytic solution using a Gaussian Process of this is as follows:
 
 ```fsharp
-let Δ : double = predictionResult.Mean - optimumValue - explorationParameter
-let σ : double = (predictionResult.UpperBound - predictionResult.LowerBound) / 2.
+let Δ                   : double = predictionResult.Mean - optimumValue - explorationParameter
+let σ                   : double = (predictionResult.UpperBound - predictionResult.LowerBound) / 2.
 let z                   : double = Δ / σ 
 let exploitationFactor  : double = Δ * Normal.CDF(0, 1, z)
 let explorationFactor   : double = σ * Normal.PDF(0, 1, z)
