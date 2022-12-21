@@ -14,7 +14,7 @@ To be concrete, the goals of this submission are:
 
 1. [To Describe Bayesian Optimization](#bayesian-optimization). 
 2. [Present the Multiple Applications of the Bayesian Optimization from Simple to more Complex](#experiments):
-   1. [__Optimizing a Trigonometric Function__: Finding the maxima of the ``Sin`` function between Pi and π and -π.](#experiment-1-objective-function-is-to-maximize-sinx)
+   1. [__Optimizing a Trigonometric Function__: Finding the maxima of the ``Sin`` function between -π and π.](#experiment-1-objective-function-is-to-maximize-sinx)
    2. __The Wall Clock Time of A Simple Command Line App__: Finding the minima of the wall clock time of execution based on the input. 
    3. __The Percent of Time Spent during Garbage Collection For a High Memory Load Case With Bursty Allocations__: Finding the minima of the percent of time spent during garbage collection based on pivoting on the number of Garbage Collection Heaps or Threads using Traces obtained via Event Tracing For Windows (ETW). 
       1. Give a short primer on ETW Profiling.
@@ -31,8 +31,10 @@ or finding the argument 'x' that maximizes (minimization is just the negative of
 ```fsharp
 type Goal =
     | Max
-    | Min
+    | Mi
 ```
+
+The way I understood this algorithm was through a [socratic approach](https://en.wikipedia.org/wiki/Socratic_method) and here are the questions I had when I first started that I gradually answered:
 
 ### What is Bayesian Optimization And Why Use It?
 
@@ -40,13 +42,27 @@ Bayesian Optimization is an iterative optimization algorithm used to find the mo
 
 To summarize, Bayesian Optimization aims to, with the fewest number of iterations, find the global optima of a function that could be a black box based function.
 
-### What is Bayesian About the Bayesian Optimization Algorithm? 
+### What Are The Components of a Bayesian Optimization Algorithm? 
+
+There are 3 main components:
+
+1. __Surrogate Model__: The surrogate model is used as for approximation of the objective function where new points can be fit and predictions can be made. More details are [here](#surrogate-model).
+2. __Acquisition Function__: The acquisition function helps discerning the next point to sample per iteration. More details are [here](#acquisition-function)
+3. __Iteration Loop__: The loop that facilitates the following from 1 to some defined iteration count that does the following and at the end of the iterations, the expectation is that you'd have explored enough data points to discern as the maxima:
+   1. Make predictions using the surrogate model. 
+   2. Based on the predictions from 1., apply the acquisition function.
+   3. Identify the point that maximizes the acquisition function. 
+   4. Update the model with the new data point.
+
+![Bayesian Optimization Loop](resources/FullLoop.png)
+
+### What is 'Bayesian' About the Bayesian Optimization Algorithm? 
 
 The efficiency of the Bayesian Optimization algorithm stems from the use of Bayes Theorem to direct the search of the global optima by updating prior beliefs about the state of the objective function in light of new observations made by sampling or choosing the next point to evaluate as a potential candidate of the optima. For those new to the world of Bayes Theorem, I have written up a summary that can be found [here](https://nbviewer.org/github/MokoSan/FSharpAdvent_2020/blob/main/BayesianInferenceInF%23.ipynb#Bayes-Theorem) as a part of my previous advent submission. 
 
-To elaborate just a bit more here (there is a section below under [Gaussian Processes](#gaussian-processes) that covers the model most commonly used for this purpose of approximating the objective function), we choose a model that helps us with approximating the objective function that's initialized based on some prior information and is updated as and when we sample or observe new data points and with each subsequent iteration, we are constructing a posterior distribution that is more closely representative of the actual objective function whose form can be an unknown.
+To elaborate just a bit more here (there is a section below under [Gaussian Processes](#gaussian-processes) that covers the model most commonly used for this purpose of approximating the objective function), we choose a surrogate model that helps us with approximating the objective function that's initialized based on some prior information and is updated as and when we sample or observe new data points and with each subsequent iteration, we are constructing a posterior distribution that is more closely representative of the actual objective function whose form can be an unknown.
 
-Now that a basic definition and reason for using Bayesian Optimization is presented, I want to provide some pertinent examples that'll help with contextualizing the idea.
+Now that a basic definition and reason for using Bayesian Optimization is presented, I want to provide some pertinent examples that'll help with contextualizing the associated ideas.
 
 ## Experiments
 
@@ -54,7 +70,7 @@ In this section, I plan to go over 3 main experiments conducted using the optimi
 
 ### Experiment 1: Optimizing a Trigonometric Function: Finding the maxima of the ``Sin`` function between π and -π.
 
-``Sin(x)`` is a simple Trigonometric Function whose maximum value is 1 at $\frac{\pi}{2}$ if the range is between -$\pi$ and $\pi$. Since we know the analytical form of the function, this simple experiment can highlight the correctness of the algorithm (within an acceptable margin of error). A Polyglot notebook of this experiment can be found [here](./Experiments/Sin/Sin.ipynb). 
+``Sin(x)`` is a simple Trigonometric Function whose maximum value is 1 at $\frac{\pi}{2}$ if the range is between $-\pi$ and $\pi$. Since we know the analytical form of the function, this simple experiment can highlight the correctness of the algorithm (within an acceptable margin of error). A [Polyglot notebook](https://devblogs.microsoft.com/dotnet/dotnet-interactive-notebooks-is-now-polyglot-notebooks/) of this experiment can be found [here](./Experiments/Sin/Sin.ipynb). 
 
 The experiment can be setup in the following way making use of the library I developed that implements the Bayesian Optimization algorithm:
 
@@ -101,8 +117,12 @@ The output gif that's the combination of the iterations is:
 
 #### Interpretation of the Charts 
 
-1. The Acquisition Function Chart tells us where it is best to search next also indicated by the next point line. More details on how the next point to search is discerned can be found [here](#acquisition-function).
+The following are the details of each of the series of the charts.
 
+1. __Predictions__: The predictions represent the mean of the results obtained from the underlying model that's the approximate of the unknown objective function. This model is also known as the Surrogate Model and more details about this can be found [here](#surrogate-model)
+2. __Acquisition Results__ series represents the acquisition function whose maxima indicates where it is best to search. More details on how the next point to search is discerned can be found [here](#acquisition-function).
+3. __Next Point__: The next point is derived from the maximization of the acquisition function and points to where we should sample next.
+4. __Observed Data__: The observed data is the data collected from iteratively maximizing the acquisition function.
 
 #### Rationale for the Parameter Choices
 
@@ -114,11 +134,11 @@ The output gif that's the combination of the iterations is:
 
 ### Implementation Of Bayesian Optimization In FSharp
 
-The two components of the Bayesian Optimization algorithm are the **Surrogate Model** and an **Acquisition Function**. The surrogate model, as hinted to by the name, is a model that serves as an approximation of the objective function while the acquisition function guides where the algorithm should search next where the best observation is most likely to reach the global optima.
+The three components, as mentioned [above](#what-are-the-components-of-a-bayesian-optimization-algorithm), of the Bayesian Optimization algorithm are the **Surrogate Model**, **Acquisition Function** and the **Iteration Loop**. To reiterate, the surrogate model, as hinted to by the name, is a model that serves as an approximation of the objective function while the acquisition function guides where the algorithm should search next where the best observation is most likely to reach the global optima and the iteration loop facilitates the maximization of the acquisition function on the basis of the predictions made by the surrogate model thereby presenting the next point to sample.
 
 #### Surrogate Model
 
-The surrogate model, as mentioned above, is used to approximate the objective function. A number of techniques can be used to represent the surrogate model however, one of the most popular ways to do so is to use __Gaussian Processes__.
+A number of techniques can be used to represent the surrogate model however, one of the most popular ways to do so is to use __Gaussian Processes__.
 
 ##### Gaussian Processes
 

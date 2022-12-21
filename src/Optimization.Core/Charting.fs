@@ -31,17 +31,7 @@ let chartResult (result : ModelResult) (nextPoint : Nullable<double>) (title : s
             MarkerSymbol = StyleParam.MarkerSymbol.Square,
             ShowMarkers = true
         )
-        |> Chart.withLineStyle(Width = 2., Dash = StyleParam.DrawingStyle.Dot)
-        |> Chart.withAxisAnchor(Y = 1)
-
-    let acquisitionResultsScatter : GenericChart.GenericChart = 
-        let ordered : AcquisitionFunctionResult seq = result.AcquisitionResults.OrderBy(fun a -> a.Input)
-        Chart.Line(
-            ordered.Select(fun a -> a.Input),
-            ordered.Select(fun a -> a.AcquisitionScore),
-            Name = "Acquisition Results"
-        )
-        |> Chart.withAxisAnchor(Y = 2)
+        |> Chart.withLineStyle(Dash = StyleParam.DrawingStyle.Dot, Color = Color.fromString "green")
 
     let nextPointScatter : GenericChart.GenericChart = 
         match nextPoint.HasValue with
@@ -52,18 +42,26 @@ let chartResult (result : ModelResult) (nextPoint : Nullable<double>) (title : s
                     Math.Max(result.ObservedDataPoints.Max(fun o -> o.Y), result.PredictionResults.Max(fun o -> o.Mean))],
                 Name = "Next Point"
             )
+            |> Chart.withLineStyle(Width = 3., Color = Color.fromString "red")
         | false ->
             Chart.Line(
                 [],
                 [],
                 Name = "Next Point"
             )
-        |> Chart.withAxisAnchor(Y = 1)
 
     let nonAcquisitionChart : GenericChart.GenericChart =
         [observedDataPoints; predictedMean; nextPointScatter]
         |> Chart.combine
         |> Chart.withTitle title
+
+    let acquisitionResultsScatter : GenericChart.GenericChart = 
+        let ordered : AcquisitionFunctionResult seq = result.AcquisitionResults.OrderBy(fun a -> a.Input)
+        Chart.Line(
+            ordered.Select(fun a -> a.Input),
+            ordered.Select(fun a -> a.AcquisitionScore),
+            Name = "Acquisition Results"
+        )
 
     let acquisitionChart : GenericChart.GenericChart = 
         [acquisitionResultsScatter]

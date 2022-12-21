@@ -1,6 +1,24 @@
 # Bayesian Optimization For Performance Tuning in FSharp
 
-[FSharp Advent 2022 Submission](AdventSubmission.md)
+This repository encompasses the work I did for my FSharp Advent 2022 submission that write-up for which can be found [here](AdventSubmission.md).
+
+To get started with viewing the experiments, run [Install.cmd](Install.cmd) that will install the prerequisites to run [PolyGlot Notebooks](https://devblogs.microsoft.com/dotnet/dotnet-interactive-notebooks-is-now-polyglot-notebooks/).
+
+## Basic Usage
+
+```fsharp
+// Create a Gaussian Process Model based on the Squared Exponential Kernel for the Sin Function.
+let gaussianModelForSin() : GaussianModel =
+    let squaredExponentialKernelParameters : SquaredExponentialKernelParameters = { LengthScale = 1.; Variance = 1. }
+    let gaussianProcess : GaussianProcess =  createProcessWithSquaredExponentialKernel squaredExponentialKernelParameters
+    let sinObjectiveFunction : ObjectiveFunction = QueryContinuousFunction Trig.Sin
+    createModel gaussianProcess sinObjectiveFunction -Math.PI Math.PI resolution
+
+// Maximize the Sin Function between - -π and π for 10 iterations.
+let model         : GaussianModel = gaussianModelForSin()
+let optimaResults : OptimaResults = findOptima model Goal.Max 10
+printfn "Optima: Sin(x) is maximized when x = %A at %A" optimaResults.Optima.X optimaResults.Optima.Y
+```
 
 ## References
 

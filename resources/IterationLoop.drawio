@@ -1,0 +1,49 @@
+<mxfile host="65bd71144e">
+    <diagram id="nY_wX4qSLX56xoQMtTMl" name="Runner">
+        <mxGraphModel dx="1913" dy="580" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="11" value="Surrogate Model" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="201" y="196" width="176" height="84" as="geometry"/>
+                </mxCell>
+                <mxCell id="13" value="" style="endArrow=classic;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="11">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="512" y="329" as="sourcePoint"/>
+                        <mxPoint x="618" y="238" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="16" value="1. Make Predictions Using the Surrogate Model" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+                    <mxGeometry x="400" y="208" width="166" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="RrPoPx9-YUP6hKeu1sj5-17" value="Acquisition Function" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="621" y="194" width="176" height="84" as="geometry"/>
+                </mxCell>
+                <mxCell id="RrPoPx9-YUP6hKeu1sj5-21" style="edgeStyle=none;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="RrPoPx9-YUP6hKeu1sj5-18" target="RrPoPx9-YUP6hKeu1sj5-22">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="709" y="374.2968521118164" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="RrPoPx9-YUP6hKeu1sj5-18" value="2. Based on the predictions from 1., apply the acquisition function." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+                    <mxGeometry x="611.5" y="286" width="195" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="RrPoPx9-YUP6hKeu1sj5-22" value="3. Identify the point that maximizes the acqusition function." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+                    <mxGeometry x="470" y="359.3" width="269" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="RrPoPx9-YUP6hKeu1sj5-28" value="" style="curved=1;endArrow=classic;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="RrPoPx9-YUP6hKeu1sj5-22" target="11">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="251" y="357" as="sourcePoint"/>
+                        <mxPoint x="301" y="307" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="301" y="357"/>
+                            <mxPoint x="251" y="307"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="RrPoPx9-YUP6hKeu1sj5-30" value="4. Update the Model With the New Data Point" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+                    <mxGeometry x="210" y="320" width="230" height="30" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

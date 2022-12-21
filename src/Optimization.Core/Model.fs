@@ -98,6 +98,7 @@ let explore (model : GaussianModel) (goal : Goal) (iterations : int) : Explorati
         let optimumValueFromAcquisition : AcquisitionFunctionResult = acquisitionResults.MaxBy(fun e -> e.AcquisitionScore)
         let nextPoint                   : double = optimumValueFromAcquisition.Input
 
+        // Copy the state of the ObservedDataPoints for this iteration.
         let copyBuffer : DataPoint[] = Array.zeroCreate model.GaussianProcess.ObservedDataPoints.Count 
         model.GaussianProcess.ObservedDataPoints.CopyTo(copyBuffer) |> ignore
 
