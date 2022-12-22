@@ -313,25 +313,26 @@ pathsToTraces
 
 and confirmed that we did detect the minima:
 
+Optima: GC Pause Time Percentage is minimized when the input is 12.0 at 2.51148003
 | Heap Count | Percentage Pause Time In GC |
 | ---------- | --------------------------- |
-|"1" | 6.047046963 |
-|"2" | 5.583524503 |
-|"3" | 6.450478144 |
-|"4" | 5.203283058 |
-|"5" | 5.158730905 |
-|"6" | 4.532609577 |
-|"7" | 5.002081101 |
-|"8" | 4.507738165 |
-|"9" | 4.528481452 |
-|"10" | 3.562337601 |
-|"11" | 3.284568033 |
-|"12" | 3.707061611 |
-|"13" | 3.743909596 |
-|"14" | 3.930902548 |
-|"15" | 3.67140204 |
-|"16" | **3.177851426** <- MIN |
-|"20" | 4.403908183 |
+|"1" | 3.901133255 |
+|"2" | 2.798426367 |
+|"3" | 5.756154774 |
+|"4" | 4.629494334 |
+|"5" | 4.612814749 |
+|"6" | 4.196522734 |
+|"7" | 3.660711125 |
+|"8" | 3.01808845 |
+|"9" | 3.800542789 |
+|"10" | 2.824685307 |
+|"11" | 2.516458761 |
+|"12" | **2.51148003** <- MIN |
+|"13" | 2.710072749 |
+|"14" | 2.522749182 |
+|"15" | 2.556040017 |
+|"16" | 3.506586409 |
+|"21" | 5.449659786 |
 
 2. To confirm we were really at the global minima, I redid the experiment except this time, I set all the processors so that we iterated until the maximum number of processors on my machine (20) and got the following results:
 
