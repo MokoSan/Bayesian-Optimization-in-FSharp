@@ -5,52 +5,48 @@ open MathNet.Numerics.LinearAlgebra
 open System.Collections.Generic
 open Microsoft.Diagnostics.Tracing.Etlx
 
-type Goal =
-    | Max
-    | Min
-
-// Helper Types.
-type WorkloadPath   = string
-type ApplyArguments = string -> string
-
-type GaussianModel    =
+type GaussianModel =
     {
         GaussianProcess     : GaussianProcess
         ObjectiveFunction   : ObjectiveFunction
         Inputs              : double list
         AcquisitionFunction : AcquisitionFunction
     }
-and GaussianProcess   = 
+and GaussianProcess = 
     { 
-        KernelFunction                     : KernelFunction
-        // TODO: Create a separate abstraction handling the min, max, updation and access of this. 
-        ObservedDataPoints                 : List<DataPoint>
-        mutable CovarianceMatrix           : Matrix<double>
+        KernelFunction           : KernelFunction
+        ObservedDataPoints       : List<DataPoint>
+        mutable CovarianceMatrix : Matrix<double>
     }
-and KernelFunction    =
-    | SquaredExponentialKernel of SquaredExponentialKernelParameters
-and AcquisitionFunction = 
-    | ExpectedImprovement
-and SquaredExponentialKernelParameters = { LengthScale : double; Variance : double }
-and DataPoint         = { X : double; Y : double }
+
+// Objective Function.
 and ObjectiveFunction =
     | QueryContinuousFunction            of (double -> double)
     | QueryProcessByElapsedTimeInSeconds of QueryProcessInfo
     | QueryProcessByTraceLog             of QueryProcessInfoByTraceLog
 and QueryProcessInfo  = 
     {
-        WorkloadPath       : WorkloadPath
-        ApplyArguments     : ApplyArguments
+        WorkloadPath   : string 
+        ApplyArguments : string -> string 
     }
 and QueryProcessInfoByTraceLog  = 
     {
-        WorkloadPath              : WorkloadPath
-        ApplyArguments            : ApplyArguments
+        WorkloadPath              : string 
+        ApplyArguments            : string   -> string 
         ApplyEnvironmentVariables : double   -> Map<string, string>
         TraceLogApplication       : TraceLog -> double
         TraceParameters           : string
         OutputPath                : string
     }
+
+// Kernel Function.
+and KernelFunction =
+    | SquaredExponentialKernel of SquaredExponentialKernelParameters
+and SquaredExponentialKernelParameters = { LengthScale : double; Variance : double }
+
+// Acquisition Function.
+and AcquisitionFunction = 
+    | ExpectedImprovement
 and AcquisitionFunctionRequest =
     {
         GaussianProcess  : GaussianProcess
@@ -58,6 +54,12 @@ and AcquisitionFunctionRequest =
         Goal             : Goal
     }
 and AcquisitionFunctionResult = { Input : double; AcquisitionScore: double }
+and Goal =
+    | Max
+    | Min
+
+// Results.
+and DataPoint         = { X : double; Y : double }
 and PredictionResult =
     { 
         Input      : double

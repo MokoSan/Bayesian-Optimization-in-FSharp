@@ -12,13 +12,6 @@ open Domain
 [<Literal>]
 let DEFAULT_EXPLORATION_PARAMETER : double = 0.01
 
-let createProcessWithSquaredExponentialKernel (squaredExponentialKernelParameters: SquaredExponentialKernelParameters) : GaussianProcess =
-    { 
-        KernelFunction     = SquaredExponentialKernel squaredExponentialKernelParameters 
-        ObservedDataPoints = List<DataPoint>()
-        CovarianceMatrix   = Matrix<double>.Build.Dense(1, 1)
-    }
-
 let fitToModel (model : GaussianModel) (input : double) : unit =
 
     // If the data point has already been explored, don't spend cycles doing it again.
@@ -78,6 +71,14 @@ let predict (model: GaussianModel) : IEnumerable<PredictionResult> =
         { Mean = mu; LowerBound = mu - confidence; UpperBound = mu + confidence; Input = input }
 
     model.Inputs.Select(fun x -> predictPoint model.GaussianProcess x)
+
+let createProcessWithSquaredExponentialKernel (squaredExponentialKernelParameters: SquaredExponentialKernelParameters) : GaussianProcess =
+    { 
+        KernelFunction     = SquaredExponentialKernel squaredExponentialKernelParameters 
+        ObservedDataPoints = List<DataPoint>()
+        CovarianceMatrix   = Matrix<double>.Build.Dense(1, 1)
+    }
+
 
 let createModelWithDiscreteInputs (gaussianProcess     : GaussianProcess)
                                   (objectiveFunction   : ObjectiveFunction)

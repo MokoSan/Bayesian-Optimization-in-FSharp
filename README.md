@@ -44,18 +44,18 @@ printfn "Optima: Sin(x) is maximized when x = %A at %A" optimaResults.Optima.X o
 4. ~~Adding Discrete Bayesian Optimization.~~
    ~~1. Add the case where we don't try out values we have tried before.~~
 5. ~~Abstracting Out The Kernel Method.~~ 
-6. Abstracting Out The Acquisition Function.
+6. ~~Abstracting Out The Acquisition Function.~~
 7. ~~Visualization.~~
    1. ~~Save plot as png.~~
    2. ~~Creating Gif Out Of Iterations.~~
-8. Creating Notebooks / Experimental Console Apps:
+8. ~~Creating Notebooks / Experimental Console Apps:~~
    1. ~~Sin Function.~~
    2. ~~Simple Workload.~~
-   3. High Memory Load Based Bursty Allocations. 
-   4. CPU Sample Counting by way of Max Degree of Parallelism.
+   3. ~~High Memory Load Based Bursty Allocations.~~
 9.  Unit Tests.
 10. Clean up main logic.
    1. Possibly add computation expressions.
    2. Possibly add ROP-esque behavior.
 11. Finish writing the article.
 12. Early Stopping.
+13. Abstract behavior of the Observation Points.

@@ -4,6 +4,8 @@
 
 ## Introduction
 
+// TODO: Add Fit and Prediction math equations. 
+
 For my 6th F# Advent submission (6 years in a row!!), I worked on combining the lessons I learnt from my last 2 submissions: [2020: Bayesian Inference in FSharp](http://bit.ly/3hhhRjq) and [2021: Perf Avore: A Performance Analysis and Monitoring Tool in FSharp](https://github.com/MokoSan/PerfAvore/blob/main/AdventSubmission.md#perf-avore-a-performance-analysis-and-monitoring-tool-in-fsharp) to develop a Bayesian Optimization algorithm in F# to solve global optimization problems for a single variable. The Bayesian Optimization algorithm is compatible with complex black-box objective functions such as those dictated by the results of profiles via Event Tracing for Windows (ETW), a Windows profiling mechanism for troubleshooting and diagnostics, in an effort to discern the best parameters to use based on the specified workload or process. In this submission, I plan to demonstrate how I developed and applied the Bayesian Optimization algorithm to various experiments to obtain the best parameters and highlight how I made use of F#'s functional features. In terms of using F#, I have had a fabulous experience, as always! I have expounded on this [here](#experience-developing-in-fsharp).
 
 If some or all parts of the aforementioned aspects of the introduction so far seem cryptic, fret not as I plan to cover these topics in detail. The intended audience of this submission is any developer, data scientist or performance engineer interested in how the Bayesian Optimization algorithm is implemented in a functional-first way.
@@ -544,13 +546,12 @@ In addition to these steps, we are also keeping track of the intermediate steps 
 // src/Optimization.Core/Model.fs
 
 // Iterate with each step to find the most optimum next point.
-seq { 0..(iterations - 1) } // n ∈ [0, iterations) and n is a natural number.
+seq { 0..(iterations - 1) } // n ∈ [0, iterations)
 |> Seq.iter(fun iteration -> (
 
     // Select next point to sample via the surrogate function i.e. estimation of the objective that maximizes the acquisition function.
     let predictions                 : PredictionResult seq = predict model
-    let acquisitionResults          : AcquisitionFunctionResult seq = predictions.Select(fun e -> 
-        (expectedImprovement model.GaussianProcess e goal DEFAULT_EXPLORATION_PARAMETER ))
+    let acquisitionResults          : AcquisitionFunctionResult seq = predictions.Select(fun predictionResult -> applyAcquisitionFunction predictionResult)
     let optimumValueFromAcquisition : AcquisitionFunctionResult = acquisitionResults.MaxBy(fun e -> e.AcquisitionScore)
     let nextPoint                   : double = optimumValueFromAcquisition.Input
 
