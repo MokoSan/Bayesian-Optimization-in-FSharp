@@ -313,7 +313,8 @@ pathsToTraces
 
 and confirmed that we did detect the minima:
 
-Optima: GC Pause Time Percentage is minimized when the input is 12.0 at 2.51148003
+``Optima: GC Pause Time Percentage is minimized when the input is 12.0 at 2.51148003``.
+
 | Heap Count | Percentage Pause Time In GC |
 | ---------- | --------------------------- |
 |"1" | 3.901133255 |
