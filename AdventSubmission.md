@@ -236,7 +236,7 @@ The code to get this experiment going can be found [here](Experiments/HighMemory
 
 ```fsharp
 let iterations = System.Environment.ProcessorCount - 5 
-let resolution = System.Environment.ProcessorCount 
+let resolution = System.Environment.ProcessorCount
  
 let getHighMemoryBurstyAllocationsModel() : GaussianModel =
     let gaussianProcess : GaussianProcess = createProcessWithSquaredExponentialKernel { LengthScale = 0.1;  Variance = 1. }
@@ -270,11 +270,15 @@ let optima   : OptimaResults      = findOptima model Goal.Min iterations
 printfn "Optima: GC Pause Time Percentage is minimized when the input is %A at %A" optima.Optima.X optima.Optima.Y
 ```
 
-The result of this experiment is:  ``Optima: GC Pause Time Percentage is minimized when the input is  at ``
+The result of this experiment is: ``Optima: GC Pause Time Percentage is minimized when the input is 16 at 3.17785146``
 
 And the gif of the charts is:
 
-To confirm the results, we can run the experiment with all possible heaps, a value bounded by the number of processors; on my machine, I have a total of 20 logical processors. The following code can be used to actually test for the Minima the results of which are given right after by using the Etlx API as a part of the Trace Event library:
+![15 Iterations](Experiments/HighMemoryBurstyAllocations/resources/Traces_15/Combined.gif)
+
+To validate these results, I did 2 things:
+
+1. Checked if the algorithm read the values correctly from the traces which, I confirmed by writing a simple command line program to do so:
 
 ```fsharp
 let pathsToTraces : string seq = Directory.GetFiles(Path.Combine(basePath, "Traces_All"), "*.etlx")
@@ -296,10 +300,64 @@ pathsToTraces
 ))
 ```
 
+and confirmed that we did detect the minima:
+
+| Heap Count | Percentage Pause Time In GC |
+| ---------- | --------------------------- |
+|"1" | 6.047046963 |
+|"2" | 5.583524503 |
+|"3" | 6.450478144 |
+|"4" | 5.203283058 |
+|"5" | 5.158730905 |
+|"6" | 4.532609577 |
+|"7" | 5.002081101 |
+|"8" | 4.507738165 |
+|"9" | 4.528481452 |
+|"10" | 3.562337601 |
+|"11" | 3.284568033 |
+|"12" | 3.707061611 |
+|"13" | 3.743909596 |
+|"14" | 3.930902548 |
+|"15" | 3.67140204 |
+|"16" | **3.177851426** <- Min |
+|"20" | 4.403908183 |
+
+2. To confirm we were really at the global minima, I redid the experiment except this time, I set all the processors so that we iterated until the maximum number of processors on my machine (20) and got the following results:
+
+Optima: GC Pause Time Percentage is minimized when the input is 15.0 at 3.203006092
+| Heap Count | Percentage Pause Time In GC |
+| ---------- | --------------------------- |
+|"1" | 5.651490499 |
+|"2" | 4.020955831 |
+|"3" | 5.95076679 |
+|"4" | 5.878731293 |
+|"5" | 6.072783254 |
+|"6" | 5.399922601 |
+|"7" | 4.719047367 |
+|"8" | 4.335357602 |
+|"9" | 4.100991668 |
+|"10" | 3.765980251 |
+|"11" | 4.835071525 |
+|"12" | 3.816887384 |
+|"13" | 3.854951751 |
+|"14" | 3.940724097 |
+|"15" | **3.203006092** <- MIN |
+|"16" | 3.224021941 |
+|"17" | 3.706980404 |
+|"18" | 4.590068687 |
+|"19" | 4.504112561 |
+|"20" | 8.387430908 |
+
+Since the minima was close to 16, we can confirm the validity of the experiment that is also susceptible to non-determinism because of the Garbage Collector, state of the machine at the time of taking the traces and other reasons.
+
 #### Event Tracing For Windows (ETW) Primer
 
 ETW provides a way to capture traces that comprise of structured log messages raised either by User or Kernel Providers that generate these log messages. The specific provider we relied for the previous experiment was that of the CLR that aggregated the data in a clean way to get us the details for the Percentage Pause Time spent in the GC.
 
+##### How To Take A Trace 
+
+
+##### How To **Programmatically** Analyze A Trace
 
 ### Implementation Of Bayesian Optimization In FSharp
 
@@ -346,7 +404,9 @@ With:
  - $σ^2$ the overall variance (is also known as amplitude or the vertical variance).
  - $\ell$ the length scale gives us the smoothness between the two points.
 
-TODO: Model Fit and Prediction.
+###### Fitting the Gaussian Process Model 
+
+###### Making Prediction From The Gaussian Process Model
 
 #### Acquisition Function
 

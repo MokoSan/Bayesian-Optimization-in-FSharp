@@ -16,7 +16,7 @@ let gaussianModelForSin() : GaussianModel =
     let sinObjectiveFunction : ObjectiveFunction = QueryContinuousFunction Trig.Sin
     createModel gaussianProcess sinObjectiveFunction -Math.PI Math.PI resolution
 
-// Maximize the Sin Function between - -π and π for 10 iterations.
+// Maximize the Sin Function between -π and π for 10 iterations.
 let model         : GaussianModel = gaussianModelForSin()
 let optimaResults : OptimaResults = findOptima model Goal.Max 10
 printfn "Optima: Sin(x) is maximized when x = %A at %A" optimaResults.Optima.X optimaResults.Optima.Y
