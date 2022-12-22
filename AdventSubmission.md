@@ -10,7 +10,7 @@ If some or all parts of the aforementioned aspects of the introduction so far se
 
 ## Goals
 
-To be concrete, the goals of this submission are:
+To be concrete, the 3 main goals of this submission are:
 
 1. [To Describe Bayesian Optimization](#bayesian-optimization). 
 2. [Present the Multiple Applications of the Bayesian Optimization from Simple to more Complex](#experiments):
@@ -81,13 +81,10 @@ Some disadvantages include:
 
 1. __Kernel Parameters For the Squared Exponential Kernel: Length Scale and Variance__: The length controls the smoothness between the points while the Variance controls the vertical amplitude. A diagram can help explain this better:
 
-
-
 2. __Resolution__: 
 
 
 3. __Iterations__: The number of iterations the Bayesian Optimization Algorithm should run for. The more the better, however, we'd be wasting cycles if we have already reached the maxima and are continuing to iterate; this can be curtailed by early stopping.
-
 
 ### How Do I Interpret the Charts of the Algorithm Below? 
 
@@ -354,10 +351,25 @@ Since the minima was close to 16, we can confirm the validity of the experiment 
 
 ETW provides a way to capture traces that comprise of structured log messages raised either by User or Kernel Providers that generate these log messages. The specific provider we relied for the previous experiment was that of the CLR that aggregated the data in a clean way to get us the details for the Percentage Pause Time spent in the GC.
 
-##### How To Take A Trace 
+##### How To Capture A Trace 
+
+A trace can be captured via the command line using [PerfView or PerfCollect](https://github.com/microsoft/perfview), a performance analysis and trace capturing tool.
+
+As an example, to start a trace for [Experiment 3](#experiment-3-minimizing-the-garbage-collection-gc-pause-time--by-varying-the-number-of-heaps), I used the following command line: 
+
+``PerfView.exe start /GCCollectOnly /NoGUI /AcceptEULA collect trace"
+
+and to stop:
+
+``PerfView.exe stop /GCCollectOnly /NoGUI /AcceptEULA collect trace"
+
+``/GCCollectOnly`` is a special keyword that captures a minimal form the trace with GC specific messages that are sufficient to highlight the GC centric performance of a particular workload.
 
 
 ##### How To **Programmatically** Analyze A Trace
+
+A trace can be programmatically analyzed using the [Trace Event Library](https://www.nuget.org/packages/Microsoft.Diagnostics.Tracing.TraceEvent) and the most comprehensive documentation that goes over details of this can be found [here](https://github.com/microsoft/perfview/blob/main/documentation/TraceEvent/TraceEventProgrammersGuide.md).
+
 
 ### Implementation Of Bayesian Optimization In FSharp
 
@@ -406,7 +418,7 @@ With:
 
 ###### Fitting the Gaussian Process Model 
 
-###### Making Prediction From The Gaussian Process Model
+###### Making Prediction Using the Gaussian Process Model
 
 #### Acquisition Function
 
@@ -506,4 +518,4 @@ It has been 6 years of submissions to the FSharp Advent event and it has been an
 5. [Gaussian Processes for Dummies](http://katbailey.github.io/post/gaussian-processes-for-dummies/)
 6. [Heavily Inspired by this Repository](https://github.com/koryakinp/GP)
 7. [More About the Squared Exponential Kernel](https://peterroelants.github.io/posts/gaussian-process-kernels/#Exponentiated-quadratic-kernel)
-8. [A Good Primer To Get Started With ETW Events](https://medium.com/@alexkhanin/getting-started-with-event-tracing-for-windows-in-c-8d866e8ab5f2)
+8. [Another Good Primer To Get Started With ETW Events](https://medium.com/@alexkhanin/getting-started-with-event-tracing-for-windows-in-c-8d866e8ab5f2)
