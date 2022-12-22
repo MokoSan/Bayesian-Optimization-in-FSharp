@@ -38,7 +38,7 @@ let getHighMemoryBurstyAllocationsModel() : GaussianModel =
         }
 
     let queryProcessObjectiveFunction : ObjectiveFunction = QueryProcessByTraceLog queryProcessByTraceLog
-    createModelWithDiscreteInputs gaussianProcess queryProcessObjectiveFunction 1 System.Environment.ProcessorCount resolution
+    createModelWithDiscreteInputs gaussianProcess queryProcessObjectiveFunction AcquisitionFunction.ExpectedImprovement 1 System.Environment.ProcessorCount resolution
 
 let model    : GaussianModel      = getHighMemoryBurstyAllocationsModel()
 let optima   : OptimaResults      = findOptima model Goal.Min iterations

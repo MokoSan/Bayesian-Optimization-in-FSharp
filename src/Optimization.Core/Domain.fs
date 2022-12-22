@@ -18,6 +18,7 @@ type GaussianModel    =
         GaussianProcess     : GaussianProcess
         ObjectiveFunction   : ObjectiveFunction
         Inputs              : double list
+        AcquisitionFunction : AcquisitionFunction
     }
 and GaussianProcess   = 
     { 
@@ -28,6 +29,8 @@ and GaussianProcess   =
     }
 and KernelFunction    =
     | SquaredExponentialKernel of SquaredExponentialKernelParameters
+and AcquisitionFunction = 
+    | ExpectedImprovement
 and SquaredExponentialKernelParameters = { LengthScale : double; Variance : double }
 and DataPoint         = { X : double; Y : double }
 and ObjectiveFunction =
@@ -48,12 +51,11 @@ and QueryProcessInfoByTraceLog  =
         TraceParameters           : string
         OutputPath                : string
     }
-    
-type ModelResult = 
-    { 
-        ObservedDataPoints : IReadOnlyList<DataPoint>
-        AcquisitionResults : IReadOnlyList<AcquisitionFunctionResult>
-        PredictionResults  : IReadOnlyList<PredictionResult>
+and AcquisitionFunctionRequest =
+    {
+        GaussianProcess  : GaussianProcess
+        PredictionResult : PredictionResult
+        Goal             : Goal
     }
 and AcquisitionFunctionResult = { Input : double; AcquisitionScore: double }
 and PredictionResult =
@@ -62,6 +64,13 @@ and PredictionResult =
         Mean       : double
         LowerBound : double
         UpperBound : double
+    }
+    
+type ModelResult = 
+    { 
+        ObservedDataPoints : IReadOnlyList<DataPoint>
+        AcquisitionResults : IReadOnlyList<AcquisitionFunctionResult>
+        PredictionResults  : IReadOnlyList<PredictionResult>
     }
 and ExplorationResults  =
     {

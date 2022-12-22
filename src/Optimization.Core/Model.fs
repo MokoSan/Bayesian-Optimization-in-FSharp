@@ -79,30 +79,42 @@ let predict (model: GaussianModel) : IEnumerable<PredictionResult> =
 
     model.Inputs.Select(fun x -> predictPoint model.GaussianProcess x)
 
-let createModelWithDiscreteInputs (gaussianProcess   : GaussianProcess)
-                                  (objectiveFunction : ObjectiveFunction)
-                                  (min               : int)
-                                  (max               : int)
-                                  (resolution        : int) : GaussianModel =
+let createModelWithDiscreteInputs (gaussianProcess     : GaussianProcess)
+                                  (objectiveFunction   : ObjectiveFunction)
+                                  (acquisitionFunction : AcquisitionFunction)
+                                  (min                 : int)
+                                  (max                 : int)
+                                  (resolution          : int) : GaussianModel =
 
     let inputs : double list = seq { for i in 0 .. resolution do i }
                                |> Seq.map(fun idx -> Math.Round( double(min + idx * (max - min) / (resolution - 1) )))
                                |> Seq.distinct
                                |> Seq.sort
                                |> Seq.toList
-    { GaussianProcess = gaussianProcess; ObjectiveFunction = objectiveFunction; Inputs = inputs }
+    { 
+        GaussianProcess     = gaussianProcess 
+        AcquisitionFunction = acquisitionFunction 
+        ObjectiveFunction   = objectiveFunction
+        Inputs              = inputs 
+    }
 
-let createModel (gaussianProcess   : GaussianProcess) 
-                (objectiveFunction : ObjectiveFunction) 
-                (min               : double) 
-                (max               : double)
-                (resolution        : int) : GaussianModel = 
+let createModel (gaussianProcess     : GaussianProcess) 
+                (objectiveFunction   : ObjectiveFunction) 
+                (acquisitionFunction : AcquisitionFunction)
+                (min                 : double) 
+                (max                 : double)
+                (resolution          : int) : GaussianModel = 
 
     let inputs : double list = seq { for i in 0 .. resolution do i }
                                |> Seq.map(fun idx -> min + double idx * (max - min) / (double resolution - 1.))
                                |> Seq.toList
 
-    { GaussianProcess = gaussianProcess; ObjectiveFunction = objectiveFunction; Inputs = inputs }
+    { 
+        GaussianProcess     = gaussianProcess 
+        AcquisitionFunction = acquisitionFunction 
+        ObjectiveFunction   = objectiveFunction 
+        Inputs              = inputs 
+    }
 
 let explore (model : GaussianModel) (goal : Goal) (iterations : int) : ExplorationResults  =
 
@@ -114,14 +126,18 @@ let explore (model : GaussianModel) (goal : Goal) (iterations : int) : Explorati
 
     let intermediateResults : List<IntermediateResult> = List<IntermediateResult>()
 
+    let applyAcquisitionFunction (predictionResult : PredictionResult) : AcquisitionFunctionResult =
+        match model.AcquisitionFunction with
+        | ExpectedImprovement ->
+            expectedImprovement { GaussianProcess = model.GaussianProcess; PredictionResult = predictionResult; Goal = goal }
+
     // Iterate with each step to find the most optimum next point.
     seq { 0..(iterations - 1) }
     |> Seq.iter(fun iteration -> (
 
         // Select next point to sample via the surrogate function i.e. estimation of the objective that maximizes the acquisition function.
         let predictions                 : PredictionResult seq = predict model
-        let acquisitionResults          : AcquisitionFunctionResult seq = predictions.Select(fun e -> 
-            (expectedImprovement model.GaussianProcess e goal DEFAULT_EXPLORATION_PARAMETER ))
+        let acquisitionResults          : AcquisitionFunctionResult seq = predictions.Select(fun predictionResult -> applyAcquisitionFunction predictionResult)
         let optimumValueFromAcquisition : AcquisitionFunctionResult = acquisitionResults.MaxBy(fun e -> e.AcquisitionScore)
         let nextPoint                   : double = optimumValueFromAcquisition.Input
 
@@ -148,7 +164,7 @@ let explore (model : GaussianModel) (goal : Goal) (iterations : int) : Explorati
     let finalResult : ModelResult =
         {
             ObservedDataPoints = model.GaussianProcess.ObservedDataPoints
-            AcquisitionResults = finalPredictions.Select(fun e -> expectedImprovement model.GaussianProcess e goal DEFAULT_EXPLORATION_PARAMETER).ToList()
+            AcquisitionResults = finalPredictions.Select(fun predictionResult -> applyAcquisitionFunction predictionResult).ToList()
             PredictionResults  = finalPredictions.ToList()
         }
 
