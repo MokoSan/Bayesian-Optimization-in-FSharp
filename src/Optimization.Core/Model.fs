@@ -6,7 +6,6 @@ open System.Collections.Generic
 open MathNet.Numerics.LinearAlgebra
 open AcquisitionFunctions
 open ObjectiveFunctions
-open Surrogate
 open Kernel
 open Domain
 
@@ -51,6 +50,34 @@ let fitToModel (model : GaussianModel) (input : double) : unit =
 
         updatedCovarianceMatrix[size - 1,  size - 1] <- matchedKernel dataPoint.X dataPoint.X
         model.GaussianProcess.CovarianceMatrix       <- updatedCovarianceMatrix
+
+let predict (model: GaussianModel) : IEnumerable<PredictionResult> =
+    let predictPoint (gaussianProcess : GaussianProcess) (input : double) : PredictionResult = 
+
+        let matchedKernelFunction : (double -> double -> double) = getKernelFunction model
+
+        let kStar : double[] =
+            gaussianProcess.ObservedDataPoints
+                           .Select(fun dp -> matchedKernelFunction input dp.X)
+                           .ToArray()
+
+        let yTrain : double[] =
+            gaussianProcess.ObservedDataPoints
+                           .Select(fun dp -> dp.Y)
+                           .ToArray()
+
+        let ks         : Vector<double> = Vector<double>.Build.Dense kStar
+        let f          : Vector<double> = Vector<double>.Build.Dense yTrain
+
+        // Common helper term. 
+        let common     : Vector<double> = gaussianProcess.CovarianceMatrix.Inverse().Multiply ks
+        // muStar = Kstar^T * K^-1 * f = common dot f
+        let mu         : double         = common.DotProduct f
+        let confidence : double         = Math.Abs( matchedKernelFunction input input  - common.DotProduct(ks) )
+
+        { Mean = mu; LowerBound = mu - confidence; UpperBound = mu + confidence; Input = input }
+
+    model.Inputs.Select(fun x -> predictPoint model.GaussianProcess x)
 
 let createModelWithDiscreteInputs (gaussianProcess   : GaussianProcess)
                                   (objectiveFunction : ObjectiveFunction)

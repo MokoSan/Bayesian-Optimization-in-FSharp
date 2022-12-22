@@ -10,7 +10,6 @@
     <Compile Include="Kernel.fs" />
     <Compile Include="TraceCollector.fs" />
     <Compile Include="ObjectiveFunctions.fs" />
-    <Compile Include="Surrogate.fs" />
     <Compile Include="AcquisitionFunctions.fs" />
     <Compile Include="Model.fs" />
     <Compile Include="Charting.fs" />

@@ -386,7 +386,9 @@ A number of techniques can be used to represent the surrogate model however, one
 
 A Gaussian Process is a random process comprising of a collection of random variables such that the joint probability distribution of every subset of these random variables is normally distributed. Intuitively, a Gaussian Process can be thought of a possibly infinite set of normally distributed variables that excel at efficient and effective summarization of a large number of functions and smooth transitions as more data is available to the model.
 
-An important aspect of defining a Gaussian Process is the __Kernel__ that controls the shape of the function at specific points. The kernel I have implemented is called the "Squared Exponential Kernel" or "Gaussian Kernel" and has two parameters that control the smoothness of the function via a length parameter and vertical variation via a variance parameter. 
+There are two important details that describe a particular Gaussian Process: __Mean Function__ dictating the mean or centeredness of the individual random variables and the __Covariance Matrix__ that dictates the shape. 
+
+An important aspect of defining a Gaussian Process is the __Kernel__ that controls the shape of the function at specific points by changing the Covariance Matrix based on the definition and the parameters supplied. The kernel I have implemented is called the "Squared Exponential Kernel" or "Gaussian Kernel" and has two parameters that control the smoothness of the function via a length parameter and vertical variation via a variance parameter. 
 
 The code of this function looks like the following where ``left`` and ``right`` are the two points for which we get details about the shape of the function at hand.
 
@@ -421,7 +423,66 @@ With:
 
 ###### Fitting the Gaussian Process Model 
 
+Fitting the Gaussian Process Model entails we reconstruct the Covariance Matrix with the latest data by using the specified Kernel. The code for this looks like the following (cleaned up for simplicity) where we compute the output from the objective function, add the new point to the observations and reconstruct the covariance matrix by way of the kernel function:
+
+```fsharp
+let result : double = 
+    match model.ObjectiveFunction with
+    | QueryContinuousFunction queryFunction               -> queryFunction input
+    | QueryProcessByElapsedTimeInSeconds queryProcessInfo -> queryProcessByElapsedTimeInSeconds queryProcessInfo input
+    | QueryProcessByTraceLog queryProcessInfo             -> queryProcessByTraceLog queryProcessInfo input
+
+let matchedKernel : double -> double -> double = getKernelFunction model
+
+let dataPoint : DataPoint = { X = input; Y = result } 
+model.GaussianProcess.ObservedDataPoints.Add dataPoint 
+
+let size                            : int = model.GaussianProcess.ObservedDataPoints.Count
+let mutable updatedCovarianceMatrix : Matrix<double> = Matrix<double>.Build.Dense(size, size)
+
+// Copy over the contents of the current covariance matrix.
+for rowIdx in 0..(model.GaussianProcess.CovarianceMatrix.RowCount - 1) do
+    for columnIdx in 0..(model.GaussianProcess.CovarianceMatrix.ColumnCount - 1) do
+        updatedCovarianceMatrix[rowIdx, columnIdx] <- model.GaussianProcess.CovarianceMatrix.[rowIdx, columnIdx]
+
+// Compute values of the new point.
+for iteratorIdx in 0..(size - 1) do
+    let modelValueAtIndex : double = model.GaussianProcess.ObservedDataPoints.[iteratorIdx].X
+    let value             : double = matchedKernel modelValueAtIndex dataPoint.X 
+    updatedCovarianceMatrix[iteratorIdx, size - 1] <- value
+    updatedCovarianceMatrix[size - 1, iteratorIdx] <- value
+
+updatedCovarianceMatrix[size - 1,  size - 1] <- matchedKernel dataPoint.X data
+```
+
 ###### Making Prediction Using the Gaussian Process Model
+
+Using the Gaussian Process Model to make predictions involves the following for each point registered by the gaussian process and the output is the mean and the level of uncertainty (in a very Bayesian fashion rather than a single point). The Linear Algebra involved is that of computing the posterior using the observed data and inputs that the model was initialized with i.e. the priors which, in our case were set based on the range and the resolution:
+
+```fsharp
+        let matchedKernelFunction : (double -> double -> double) = getKernelFunction model
+
+        let kStar : double[] =
+            gaussianProcess.ObservedDataPoints
+                           .Select(fun dp -> matchedKernelFunction input dp.X)
+                           .ToArray()
+
+        let yTrain : double[] =
+            gaussianProcess.ObservedDataPoints
+                           .Select(fun dp -> dp.Y)
+                           .ToArray()
+
+        let ks         : Vector<double> = Vector<double>.Build.Dense kStar
+        let f          : Vector<double> = Vector<double>.Build.Dense yTrain
+
+        // Common helper term. 
+        let common     : Vector<double> = gaussianProcess.CovarianceMatrix.Inverse().Multiply ks
+        // muStar = Kstar^T * K^-1 * f = common dot f
+        let mu         : double         = common.DotProduct f
+        let confidence : double         = Math.Abs( matchedKernelFunction input input  - common.DotProduct(ks) )
+
+        { Mean = mu; LowerBound = mu - confidence; UpperBound = mu + confidence; Input = input }
+```
 
 #### Acquisition Function
 
