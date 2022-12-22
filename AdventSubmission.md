@@ -363,13 +363,16 @@ and to stop:
 
 ``PerfView.exe stop /GCCollectOnly /NoGUI /AcceptEULA collect trace"
 
-``/GCCollectOnly`` is a special keyword that captures a minimal form the trace with GC specific messages that are sufficient to highlight the GC centric performance of a particular workload.
-
+- ``/GCCollectOnly`` is a special keyword that captures a minimal form the trace with GC specific messages that are sufficient to highlight the GC centric performance of a particular workload.
+- ``collect`` is the command to collect a trace
+- ``trace`` is the name of the trace file being saved. This will by default result in a ``.etl.zip`` file.
+- The other ``/NoGUI`` and ``/AcceptEULA`` parameters are to not start the PerfView GUI and to prevent the EULA dialog box from popping up and impeding our ability to capture a trace, respectively.
 
 ##### How To **Programmatically** Analyze A Trace
 
-A trace can be programmatically analyzed using the [Trace Event Library](https://www.nuget.org/packages/Microsoft.Diagnostics.Tracing.TraceEvent) and the most comprehensive documentation that goes over details of this can be found [here](https://github.com/microsoft/perfview/blob/main/documentation/TraceEvent/TraceEventProgrammersGuide.md).
+A trace can be programmatically analyzed using the [Trace Event Library](https://www.nuget.org/packages/Microsoft.Diagnostics.Tracing.TraceEvent) and the most comprehensive documentation that goes over details of this can be found [here](https://github.com/microsoft/perfview/blob/main/documentation/TraceEvent/TraceEventProgrammersGuide.md). 
 
+The example in [Experiment 3](#experiment-3-minimizing-the-garbage-collection-gc-pause-time--by-varying-the-number-of-heaps) made use of the TraceLog API that converts an ETL file to the more bolstered ETLX file from which we can access the process specific GC metrics.
 
 ### Implementation Of Bayesian Optimization In FSharp
 
@@ -491,10 +494,6 @@ Domain Modeling using Discriminated Unions and Record Types, Pattern Matching an
 
 As always, I am **super** open to feedback as to how I have made use of F# developing this project and so, if anyone has suggestions of how I could developed this any better, I am all ears! 
 
-## Conclusion
-
-Thanks to [Pavel Koryakin](https://github.com/koryakinp) whose [repository](https://github.com/koryakinp/GP) gave me a perfectly apt place to start with developing my own.
-
 ## 6 Years Going Strong!
 
 It has been 6 years of submissions to the FSharp Advent event and it has been an awesome experience. Here are links to my previous posts:
@@ -508,6 +507,20 @@ It has been 6 years of submissions to the FSharp Advent event and it has been an
    2. [The Path of the Hobbits](https://t.co/UtFQRj3W3X)
    3. [The Path of the Wizard](https://t.co/6AzIg7voAb)
    4. [The Path of the King](https://t.co/ko6bubJqsw)
+
+## Conclusion
+
+Phew! That was quite a bit of information! I had a fantastic time working on this (still continuing) project and learning about the internals of the Bayesian Optimization Algorithm. To reiterate, we covered:
+
+1. Details About the Bayesian Optimization Algorithm
+2. 3 Experimental Usages of the Library I developed that Implemented this.
+   1. Gave a primer on ETW events.
+3. Described details of the implementation. 
+
+Thanks goes out to:
+[Pavel Koryakin](https://github.com/koryakinp) whose [repository](https://github.com/koryakinp/GP) gave me a perfectly apt place to start with developing my own and [Sergey Tihon](https://twitter.com/sergey_tiho) for organizing the FSharp Advent event.
+
+Happy Holidays to All!
 
 ## References
 
