@@ -11,7 +11,7 @@ let WORKLOAD_PATH : string = Path.Combine( __SOURCE_DIRECTORY__, "../../src/Work
 let basePath = Path.Combine( __SOURCE_DIRECTORY__, "resources", "Traces_15")
 
 let iterations : int = System.Environment.ProcessorCount - 5
-let resolution : int = System.Environment.ProcessorCount * 2
+let resolution : int = System.Environment.ProcessorCount
 
 let getHighMemoryBurstyAllocationsModel() : GaussianModel =
     let gaussianProcess : GaussianProcess = createProcessWithSquaredExponentialKernel { LengthScale = 0.1;  Variance = 1. }
