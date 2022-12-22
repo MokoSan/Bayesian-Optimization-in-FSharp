@@ -218,7 +218,7 @@ let optima   : OptimaResults = findOptima model Goal.Min iterations
 printfn "Optima: Simple Workload Time is minimized when the input is %A at %A seconds" optima.Optima.X optima.Optima.Y
 ```
 
-The result was: ``Optima: Simple Workload Time is minimized when the input is 1.362725451 at 0.209 seconds``
+The result was: ``Optima: Simple Workload Time is minimized when the input is 1.032064128 at 0.151 seconds``.
 
 A gif of the algorithm is:
 
