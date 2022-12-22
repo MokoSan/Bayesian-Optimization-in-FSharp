@@ -8,9 +8,9 @@ open System.IO
 open Microsoft.Diagnostics.Tracing.Analysis
 
 let WORKLOAD_PATH : string = Path.Combine( __SOURCE_DIRECTORY__, "../../src/Workloads/HighMemory_BurstyAllocations/bin/Release/net6.0/HighMemory_BurstyAllocations.exe")
-let basePath = Path.Combine( __SOURCE_DIRECTORY__, "resources", "Traces_15")
+let basePath = Path.Combine( __SOURCE_DIRECTORY__, "resources", "Traces_All")
 
-let iterations : int = System.Environment.ProcessorCount - 5
+let iterations : int = System.Environment.ProcessorCount
 let resolution : int = System.Environment.ProcessorCount
 
 let getHighMemoryBurstyAllocationsModel() : GaussianModel =

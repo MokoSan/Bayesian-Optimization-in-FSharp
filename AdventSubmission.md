@@ -93,6 +93,8 @@ let inputs : double list = seq { for i in 0 .. resolution do i }
                            |> Seq.toList
 ```
 
+The idea here is to use a higher resolution where precision is of paramount importance i.e. you can guess that the optima will require many digits after the decimal point. 
+
 3. __Iterations__: The number of iterations the Bayesian Optimization Algorithm should run for. The more the better, however, we'd be wasting cycles if we have already reached the maxima and are continuing to iterate; this can be curtailed by early stopping.
 
 ### How Do I Interpret the Charts of the Algorithm Below? 
@@ -237,8 +239,6 @@ It's worth mentioning that the ``QueryProcessInfo`` type is used to specify the 
 
 ### Experiment 3: Minimizing the Garbage Collection (GC) Pause Time % By Varying The Number of Heaps 
 
-// TODO: Fix the table values.
-
 The workload code that can be found [here](src/Workloads/HighMemory_BurstyAllocations/Program.cs) first launches a separate process that induces a state of high memory; the source code for the high memory load inducer can be found [here](https://github.com/dotnet/performance/blob/main/src/benchmarks/gc/src/exec/env/make_memory_load.c). Subsequently, a large number of allocations are made intermittently. While this workload is executing, we will have been taking a ETW Trace that'll contain the GC Pause Time %. The idea here is to stress the memory of a machine and see how bursty allocations perform with varying Garbage Collection heaps the value of which, is controlled by 2 environment variables: ``COMPlus_GCHeapCount`` and ``COMPlus_GCServer`` where the former needs to be specified in Hexadecimal format indicating the number of heaps to be used bounded by the number of logical processors and the latter is a boolean (0 or 1).
 
 The code to get this experiment going can be found [here](Experiments/HighMemoryBurstyAllocations/) but the following are pertinent excerpts:
@@ -279,7 +279,7 @@ let optima   : OptimaResults      = findOptima model Goal.Min iterations
 printfn "Optima: GC Pause Time Percentage is minimized when the input is %A at %A" optima.Optima.X optima.Optima.Y
 ```
 
-The result of this experiment is: ``Optima: GC Pause Time Percentage is minimized when the input is 16 at 3.17785146``
+The result of this experiment is: ``Optima: GC Pause Time Percentage is minimized when the input is 12.0 at 2.51148003``.
 
 And the gif of the charts is:
 
@@ -292,7 +292,7 @@ To validate these results, I did 2 things:
 ```fsharp
 // Experiments/HighMemoryBurstyAllocations/Program.fs
 
-let pathsToTraces : string seq = Directory.GetFiles(Path.Combine(basePath, "Traces_All"), "*.etlx")
+let pathsToTraces : string seq = Directory.GetFiles(Path.Combine(basePath, "Traces_15"), "*.etlx")
 
 let getGCPauseTimePercentage(pathOfTrace : string) : double =
     use traceLog : Microsoft.Diagnostics.Tracing.Etlx.TraceLog = new Microsoft.Diagnostics.Tracing.Etlx.TraceLog(pathOfTrace)
@@ -335,29 +335,30 @@ and confirmed that we did detect the minima:
 
 2. To confirm we were really at the global minima, I redid the experiment except this time, I set all the processors so that we iterated until the maximum number of processors on my machine (20) and got the following results:
 
-Optima: GC Pause Time Percentage is minimized when the input is 15.0 at 3.203006092
+``Optima: GC Pause Time Percentage is minimized when the input is 12.0 at 2.247975719``.
+
 | Heap Count | Percentage Pause Time In GC |
 | ---------- | --------------------------- |
-|"1" | 5.651490499 |
-|"2" | 4.020955831 |
-|"3" | 5.95076679 |
-|"4" | 5.878731293 |
-|"5" | 6.072783254 |
-|"6" | 5.399922601 |
-|"7" | 4.719047367 |
-|"8" | 4.335357602 |
-|"9" | 4.100991668 |
-|"10" | 3.765980251 |
-|"11" | 4.835071525 |
-|"12" | 3.816887384 |
-|"13" | 3.854951751 |
-|"14" | 3.940724097 |
-|"15" | **3.203006092** <- MIN |
-|"16" | 3.224021941 |
-|"17" | 3.706980404 |
-|"18" | 4.590068687 |
-|"19" | 4.504112561 |
-|"20" | 8.387430908 |
+|"1" | 4.7886298 |
+|"2" | 4.236894341 |
+|"3" | 4.71068455 |
+|"4" | 3.870396061 |
+|"5" | 4.460504767 |
+|"6" | 3.473897596 |
+|"7" | 3.276429007 |
+|"8" | 3.203552845 |
+|"9" | 2.846175963 |
+|"10" | 2.563527965 |
+|"11" | 2.434899728 |
+|"12" | **2.247975719** <- MIN|
+|"13" | 2.536508289 |
+|"14" | 2.528864583 |
+|"15" | 2.400874153 |
+|"16" | 2.362189349 |
+|"17" | 3.375737401 |
+|"18" | 5.864851149 |
+|"19" | 5.352540323 |
+|"20" | 6.907995823 |
 
 Since the minima was close to 16, we can confirm the validity of the experiment that is also susceptible to non-determinism because of the Garbage Collector, state of the machine at the time of taking the traces and other reasons.
 
