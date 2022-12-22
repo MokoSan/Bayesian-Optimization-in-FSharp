@@ -29,6 +29,8 @@ $$ \arg \max_{x} f(x) $$
 or finding the argument $x$ that maximizes (minimization is just the negative of maximization) the function, $f(x)$ known more generally as the __optima__. The "direction" of the optimization i.e. whether we are minimizing or maximizing can be modeled as "Goal" such as:
 
 ```fsharp
+// src/Optimization.Core/Domain.fs
+
 type Goal =
     | Max
     | Min
@@ -79,7 +81,7 @@ Some disadvantages include:
 
 ### What are the Inputs of the Model To Get A Basic Run Going?
 
-1. __Kernel Parameters For the Squared Exponential Kernel: Length Scale and Variance__: The length controls the smoothness between the points while the Variance controls the vertical amplitude. A diagram can help explain this better:
+1. __Kernel Parameters For the Squared Exponential Kernel: Length Scale and Variance__: The length controls the smoothness between the points while the Variance controls the vertical amplitude. A diagram obtained from [here]() can help explain this better:
 
 2. __Resolution__: 
 
@@ -163,6 +165,8 @@ The gist of the trivial algorithm is the following where we sleep for the shorte
 The aforementioned logic looks something like:
 
 ```csharp
+// src/Workloads/SimpleWorkload/Program.cs
+
 private const int DEFAULT_SLEEP_MSEC    = 2000;
 private const int FAST_SLEEP_MSEC       = 1000;
 private const int FASTEST_SLEEP_MSEC    = 50;
@@ -192,7 +196,6 @@ private const int FASTEST_SLEEP_MSEC    = 50;
 The setup of the experiment is as follows details of which can be found in the PolyGlot Notebook [here](Experiments/SimpleWorkload/SimpleWorkload.ipynb).
 
 ```fsharp
-
 open Optimization.Domain
 open Optimization.Model
 open Optimization.Charting
@@ -278,6 +281,8 @@ To validate these results, I did 2 things:
 1. Checked if the algorithm read the values correctly from the traces which, I confirmed by writing a simple command line program to do so:
 
 ```fsharp
+// Experiments/HighMemoryBurstyAllocations/Program.fs
+
 let pathsToTraces : string seq = Directory.GetFiles(Path.Combine(basePath, "Traces_All"), "*.etlx")
 
 let getGCPauseTimePercentage(pathOfTrace : string) : double =
@@ -426,6 +431,8 @@ With:
 Fitting the Gaussian Process Model entails we reconstruct the Covariance Matrix with the latest data by using the specified Kernel. The code for this looks like the following (cleaned up for simplicity) where we compute the output from the objective function, add the new point to the observations and reconstruct the covariance matrix by way of the kernel function:
 
 ```fsharp
+// src/Optimization.Core/Model.fs
+
 let result : double = 
     match model.ObjectiveFunction with
     | QueryContinuousFunction queryFunction               -> queryFunction input
@@ -460,29 +467,33 @@ updatedCovarianceMatrix[size - 1,  size - 1] <- matchedKernel dataPoint.X data
 Using the Gaussian Process Model to make predictions involves the following for each point registered by the gaussian process and the output is the mean and the level of uncertainty (in a very Bayesian fashion rather than a single point). The Linear Algebra involved is that of computing the posterior using the observed data and inputs that the model was initialized with i.e. the priors which, in our case were set based on the range and the resolution:
 
 ```fsharp
-        let matchedKernelFunction : (double -> double -> double) = getKernelFunction model
+// src/Optimization.Core/Model.fs
 
-        let kStar : double[] =
-            gaussianProcess.ObservedDataPoints
-                           .Select(fun dp -> matchedKernelFunction input dp.X)
-                           .ToArray()
+let matchedKernelFunction : (double -> double -> double) = getKernelFunction model
 
-        let yTrain : double[] =
-            gaussianProcess.ObservedDataPoints
-                           .Select(fun dp -> dp.Y)
-                           .ToArray()
+let kStar : double[] =
+    gaussianProcess.ObservedDataPoints
+                    .Select(fun dp -> matchedKernelFunction input dp.X)
+                    .ToArray()
 
-        let ks         : Vector<double> = Vector<double>.Build.Dense kStar
-        let f          : Vector<double> = Vector<double>.Build.Dense yTrain
+let yTrain : double[] =
+    gaussianProcess.ObservedDataPoints
+                    .Select(fun dp -> dp.Y)
+                    .ToArray()
 
-        // Common helper term. 
-        let common     : Vector<double> = gaussianProcess.CovarianceMatrix.Inverse().Multiply ks
-        // muStar = Kstar^T * K^-1 * f = common dot f
-        let mu         : double         = common.DotProduct f
-        let confidence : double         = Math.Abs( matchedKernelFunction input input  - common.DotProduct(ks) )
+let ks         : Vector<double> = Vector<double>.Build.Dense kStar
+let f          : Vector<double> = Vector<double>.Build.Dense yTrain
 
-        { Mean = mu; LowerBound = mu - confidence; UpperBound = mu + confidence; Input = input }
+// Common helper term. 
+let common     : Vector<double> = gaussianProcess.CovarianceMatrix.Inverse().Multiply ks
+// muStar = Kstar^T * K^-1 * f = common dot f
+let mu         : double         = common.DotProduct f
+let confidence : double         = Math.Abs( matchedKernelFunction input input  - common.DotProduct(ks) )
+
+{ Mean = mu; LowerBound = mu - confidence; UpperBound = mu + confidence; Input = input }
 ```
+
+A more in-depth tutorial on this can be found [here](http://krasserm.github.io/2018/03/19/gaussian-processes/).
 
 #### Acquisition Function
 
