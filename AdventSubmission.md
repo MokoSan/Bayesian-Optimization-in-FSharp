@@ -16,7 +16,7 @@ To be concrete, the 3 main goals of this submission are:
 2. [Present the Multiple Applications of the Bayesian Optimization from Simple to more Complex](#experiments):
    1. [Maximizing ``Sin`` function between -π and π.](#experiment-1-maximizing-the-sin-function-between-π-and--π)
    2. [Minimizing The Wall Clock Time of A Simple Command Line App](#experiment-2-minimizing-the-wall-clock-time-of-a-simple-command-line-app): Finding the minima of the wall clock time of execution of an independent process based on the input.
-   3. [Minimizing The Percent of Time Spent during Garbage Collection For a High Memory Load Case With Bursty Allocations By Varying The Number of Heaps](#experiment-3-minimizing-the-wall-clock-execution-time-by-varying): Finding the minima of the percent of time spent during garbage collection based on pivoting on the number of Garbage Collection Heaps or Threads using Traces obtained via Event Tracing For Windows (ETW). 
+   3. [Minimizing The Percent of Time Spent during Garbage Collection For a High Memory Load Case With Bursty Allocations By Varying The Number of Heaps](#experiment-3-minimizing-the-garbage-collection-gc-pause-time--by-varying-the-number-of-heaps): Finding the minima of the percent of time spent during garbage collection based on pivoting on the number of Garbage Collection Heaps or Threads using Traces obtained via Event Tracing For Windows (ETW). 
       1. [Give a short primer on ETW Profiling.](#event-tracing-for-windows-etw-primer)
 3. [Describe the Implementation of the Bayesian Optimization Algorithm and Infrastructure](#implementation-of-bayesian-optimization-in-fsharp)
 
@@ -42,16 +42,16 @@ The way I understood this algorithm was through a [socratic approach](https://en
 
 Bayesian Optimization is an iterative optimization algorithm used to find the most optimal element like any other optimization algorithm however, where it shines in comparison to others is when the criterion or objective function is a black box function. A black box function indicates the prospect of a lack of an analytic expression or known mathematical formula for the objective function and/or details about other properties for example, knowing if the derivative exists for the function so as to make use of other optimization techniques such as [Stochastic Gradient Descent](https://en.wikipedia.org/wiki/Stochastic_gradient_descent).
 
-To contrast with 2 other optimization techniques namely, **Grid Search Optimization** and **Random Search Optimization** TODO:
+To contrast with 2 other popular optimization techniques namely, **Grid Search Optimization** and **Random Search Optimization** whose intractability and efficiency, respectively come into question, Bayesian Optimization uses information from previous iterations to get to the optima in a more computational efficient and directed based on the data.
 
-To summarize, Bayesian Optimization aims to, with the fewest number of iterations, find the global optima of a function that could be a black box based function.
+To summarize, Bayesian Optimization aims to, with the fewest number of iterations, find the global optima of a function that could be a black box based function in a way that previous data points are used to make the best guess as to where the optima _could_ be.
 
 ### What Are The Components of a Bayesian Optimization Algorithm? 
 
 There are 3 main components:
 
 1. __Surrogate Model__: The surrogate model is used as for approximation of the objective function where new points can be fit and predictions can be made. More details are [here](#surrogate-model).
-2. __Acquisition Function__: The acquisition function helps discerning the next point to sample per iteration. More details are [here](#acquisition-function)
+2. __Acquisition Function__: The acquisition function helps discerning the next point to sample per iteration. More details are [here](#acquisition-function).
 3. __Iteration Loop__: The loop that facilitates the following from 1 to some defined iteration count that does the following and at the end of the iterations, the expectation is that you'd have explored enough data points to discern as the maxima:
    1. Make predictions using the surrogate model. 
    2. Based on the predictions from 1., apply the acquisition function.
@@ -81,7 +81,7 @@ Some disadvantages include:
 
 ### What are the Inputs of the Model To Get A Basic Run Going?
 
-1. __Kernel Parameters For the Squared Exponential Kernel: Length Scale and Variance__: The length controls the smoothness between the points while the Variance controls the vertical amplitude. A more comprehensive explanation can be found [here](https://peterroelants.github.io/posts/gaussian-process-kernels/#Exponentiated-quadratic-kernel) but in a nutshell, the length scale determines the length of the 'wiggles' in your function and the variance how far out the function can fluctuate.
+1. __Kernel Parameters For the Squared Exponential Kernel: Length Scale and Variance__: The length controls the smoothness between the points while the Variance controls the vertical amplitude. A more comprehensive explanation can be found [here](https://peterroelants.github.io/posts/gaussian-process-kernels/#Exponentiated-quadratic-kernel) but in a nutshell, the length scale determines the length of the 'wiggles' in your function and the variance determines how far out the function can fluctuate.
 
 2. __Resolution__: Our priors are initialized as a list
 
@@ -323,7 +323,7 @@ and confirmed that we did detect the minima:
 |"13" | 3.743909596 |
 |"14" | 3.930902548 |
 |"15" | 3.67140204 |
-|"16" | **3.177851426** <- Min |
+|"16" | **3.177851426** <- MIN |
 |"20" | 4.403908183 |
 
 2. To confirm we were really at the global minima, I redid the experiment except this time, I set all the processors so that we iterated until the maximum number of processors on my machine (20) and got the following results:
@@ -547,7 +547,7 @@ seq { 0..(iterations - 1) } // n ∈ [0, iterations) and n is a natural number.
 
     let result : ModelResult = 
         {
-            ObservedDataPoints = copyBuffer.ToList() 
+            ObservedDataPoints = model.GaussianProcess.ObservedDataPoints.ToList() 
             AcquisitionResults = acquisitionResults.ToList()
             PredictionResults  = predictions.ToList() 
         }
