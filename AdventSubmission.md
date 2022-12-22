@@ -42,7 +42,7 @@ The way I understood this algorithm was through a [socratic approach](https://en
 
 Bayesian Optimization is an iterative optimization algorithm used to find the most optimal element like any other optimization algorithm however, where it shines in comparison to others is when the criterion or objective function is a black box function. A black box function indicates the prospect of a lack of an analytic expression or known mathematical formula for the objective function and/or details about other properties for example, knowing if the derivative exists for the function so as to make use of other optimization techniques such as [Stochastic Gradient Descent](https://en.wikipedia.org/wiki/Stochastic_gradient_descent).
 
-To contrast with 2 other optimization techniques namely, **Grid Search Optimization** and **Random Search Optimization**.
+To contrast with 2 other optimization techniques namely, **Grid Search Optimization** and **Random Search Optimization** TODO:
 
 To summarize, Bayesian Optimization aims to, with the fewest number of iterations, find the global optima of a function that could be a black box based function.
 
@@ -230,6 +230,8 @@ It's worth mentioning that the ``QueryProcessInfo`` type is used to specify the 
 
 ### Experiment 3: Minimizing the Garbage Collection (GC) Pause Time % By Varying The Number of Heaps 
 
+// TODO: Fix the table values.
+
 The workload code that can be found [here](src/Workloads/HighMemory_BurstyAllocations/Program.cs) first launches a separate process that induces a state of high memory; the source code for the high memory load inducer can be found [here](https://github.com/dotnet/performance/blob/main/src/benchmarks/gc/src/exec/env/make_memory_load.c). Subsequently, a large number of allocations are made intermittently. While this workload is executing, we will have been taking a ETW Trace that'll contain the GC Pause Time %. The idea here is to stress the memory of a machine and see how bursty allocations perform with varying Garbage Collection heaps the value of which, is controlled by 2 environment variables: ``COMPlus_GCHeapCount`` and ``COMPlus_GCServer`` where the former needs to be specified in Hexadecimal format indicating the number of heaps to be used bounded by the number of logical processors and the latter is a boolean (0 or 1).
 
 The code to get this experiment going can be found [here](Experiments/HighMemoryBurstyAllocations/) but the following are pertinent excerpts:
@@ -362,11 +364,11 @@ A trace can be captured via the command line using [PerfView or PerfCollect](htt
 
 As an example, to start a trace for [Experiment 3](#experiment-3-minimizing-the-garbage-collection-gc-pause-time--by-varying-the-number-of-heaps), I used the following command line: 
 
-``PerfView.exe start /GCCollectOnly /NoGUI /AcceptEULA collect trace"
+``PerfView.exe start /GCCollectOnly /NoGUI /AcceptEULA collect trace``
 
 and to stop:
 
-``PerfView.exe stop /GCCollectOnly /NoGUI /AcceptEULA collect trace"
+``PerfView.exe stop /GCCollectOnly /NoGUI /AcceptEULA collect trace``
 
 - ``/GCCollectOnly`` is a special keyword that captures a minimal form the trace with GC specific messages that are sufficient to highlight the GC centric performance of a particular workload.
 - ``collect`` is the command to collect a trace
