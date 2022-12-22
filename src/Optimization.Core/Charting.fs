@@ -10,8 +10,6 @@ open ImageMagick
 
 let chartResult (result : ModelResult) (nextPoint : Nullable<double>) (title : string) : GenericChart.GenericChart  =  
 
-    Defaults.DefaultTemplate <- ChartTemplates.plotly
-
     let observedDataPoints : GenericChart.GenericChart =
         let ordered : DataPoint seq = result.ObservedDataPoints.OrderBy(fun o -> o.X)
         Chart.Line(
@@ -24,10 +22,14 @@ let chartResult (result : ModelResult) (nextPoint : Nullable<double>) (title : s
 
     let predictedMean : GenericChart.GenericChart = 
         let ordered : PredictionResult seq = result.PredictionResults.OrderBy(fun a -> a.Input)
-        Chart.Line(
-            ordered.Select(fun a -> a.Input),
-            ordered.Select(fun a -> a.Mean),
-            Name = "Predictions",
+
+        Chart.Range( 
+            xy    = ordered.Select(fun a -> (a.Input, a.Mean)),
+            upper = ordered.Select(fun a -> a.UpperBound),
+            lower = ordered.Select(fun a -> a.LowerBound),
+            mode  = StyleParam.Mode.Lines_Markers,
+            RangeColor = Color.fromString "lightblue",
+            Name  = "Predictions",
             MarkerSymbol = StyleParam.MarkerSymbol.Square,
             ShowMarkers = true
         )
@@ -43,6 +45,8 @@ let chartResult (result : ModelResult) (nextPoint : Nullable<double>) (title : s
                 Name = "Next Point"
             )
             |> Chart.withLineStyle(Width = 3., Color = Color.fromString "red")
+
+        // For the last iteration, we don't draw the next point.
         | false ->
             Chart.Line(
                 [],
