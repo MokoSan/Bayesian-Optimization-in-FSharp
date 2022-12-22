@@ -9,7 +9,7 @@ using (Process highMemoryLoadProcess = new Process())
 
     highMemoryLoadProcess.Start();
 
-    Thread.Sleep(4000);
+    Thread.Sleep(5000);
 
     const long ITERATION_COUNT = 10_000_000;
     const int REPEAT_COUNT     = 10;

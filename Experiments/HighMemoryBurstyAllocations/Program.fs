@@ -8,11 +8,11 @@ open System.IO
 open Microsoft.Diagnostics.Tracing.Analysis
 
 let WORKLOAD_PATH : string = Path.Combine( __SOURCE_DIRECTORY__, "../../src/Workloads/HighMemory_BurstyAllocations/bin/Release/net6.0/HighMemory_BurstyAllocations.exe")
-let basePath = Path.Combine( __SOURCE_DIRECTORY__, "resources")
+let basePath = Path.Combine( __SOURCE_DIRECTORY__, "resources", "Traces_15")
 
-let iterations = System.Environment.ProcessorCount
-let resolution = System.Environment.ProcessorCount
- 
+let iterations : int = System.Environment.ProcessorCount - 5
+let resolution : int = System.Environment.ProcessorCount * 2
+
 let getHighMemoryBurstyAllocationsModel() : GaussianModel =
     let gaussianProcess : GaussianProcess = createProcessWithSquaredExponentialKernel { LengthScale = 0.1;  Variance = 1. }
 
@@ -34,27 +34,24 @@ let getHighMemoryBurstyAllocationsModel() : GaussianModel =
             )
 
             TraceParameters = "/GCCollectOnly"
-            OutputPath      = Path.Combine( basePath, "Traces_All" )
+            OutputPath      = basePath
         }
 
     let queryProcessObjectiveFunction : ObjectiveFunction = QueryProcessByTraceLog queryProcessByTraceLog
     createModelWithDiscreteInputs gaussianProcess queryProcessObjectiveFunction 1 System.Environment.ProcessorCount resolution
 
-(*
 let model    : GaussianModel      = getHighMemoryBurstyAllocationsModel()
 let optima   : OptimaResults      = findOptima model Goal.Min iterations
 printfn "Optima: GC Pause Time Percentage is minimized when the input is %A at %A" optima.Optima.X optima.Optima.Y
 
-let charts : GenericChart.GenericChart seq = 
-    chartAllResults optima
-
+let charts : GenericChart.GenericChart seq = chartAllResults optima
 // Save the Charts and the Gif.
 saveCharts basePath charts
-saveGif basePath "Combined.gif"
-*)
+
+saveGif basePath "./Combined.gif"
 
 // Check to see if we got the % correct.
-let pathsToTraces : string seq = Directory.GetFiles(Path.Combine(basePath, "Traces_All"), "*.etlx")
+let pathsToTraces : string seq = Directory.GetFiles(basePath, "*.etlx")
 
 let getGCPauseTimePercentage(pathOfTrace : string) : double =
     use traceLog : Microsoft.Diagnostics.Tracing.Etlx.TraceLog = new Microsoft.Diagnostics.Tracing.Etlx.TraceLog(pathOfTrace)

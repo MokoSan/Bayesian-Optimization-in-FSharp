@@ -14,10 +14,10 @@ To be concrete, the goals of this submission are:
 
 1. [To Describe Bayesian Optimization](#bayesian-optimization). 
 2. [Present the Multiple Applications of the Bayesian Optimization from Simple to more Complex](#experiments):
-   1. [Maximizing ``Sin`` function between -π and π.](#experiment-1-objective-function-is-to-maximize-sinx)
+   1. [Maximizing ``Sin`` function between -π and π.](#experiment-1-maximizing-the-sin-function-between-π-and--π)
    2. [Minimizing The Wall Clock Time of A Simple Command Line App](#experiment-2-minimizing-the-wall-clock-time-of-a-simple-command-line-app): Finding the minima of the wall clock time of execution of an independent process based on the input.
    3. [Minimizing The Percent of Time Spent during Garbage Collection For a High Memory Load Case With Bursty Allocations By Varying The Number of Heaps](#experiment-3-minimizing-the-wall-clock-execution-time-by-varying): Finding the minima of the percent of time spent during garbage collection based on pivoting on the number of Garbage Collection Heaps or Threads using Traces obtained via Event Tracing For Windows (ETW). 
-      1. Give a short primer on ETW Profiling.
+      1. [Give a short primer on ETW Profiling.](#event-tracing-for-windows-etw-primer)
 3. [Describe the Implementation of the Bayesian Optimization Algorithm and Infrastructure](#implementation-of-bayesian-optimization-in-fsharp)
 
 ## Bayesian Optimization
@@ -235,8 +235,8 @@ The workload code that can be found [here](src/Workloads/HighMemory_BurstyAlloca
 The code to get this experiment going can be found [here](Experiments/HighMemoryBurstyAllocations/) but the following are pertinent excerpts:
 
 ```fsharp
-let iterations = 15 
-let resolution = 500
+let iterations = System.Environment.ProcessorCount - 5 
+let resolution = System.Environment.ProcessorCount 
  
 let getHighMemoryBurstyAllocationsModel() : GaussianModel =
     let gaussianProcess : GaussianProcess = createProcessWithSquaredExponentialKernel { LengthScale = 0.1;  Variance = 1. }
@@ -270,10 +270,9 @@ let optima   : OptimaResults      = findOptima model Goal.Min iterations
 printfn "Optima: GC Pause Time Percentage is minimized when the input is %A at %A" optima.Optima.X optima.Optima.Y
 ```
 
-The result of this experiment is: ``Optima: GC Pause Time Percentage is minimized when the input is 2 at 4.362703288``
+The result of this experiment is:  ``Optima: GC Pause Time Percentage is minimized when the input is  at ``
 
 And the gif of the charts is:
-
 
 To confirm the results, we can run the experiment with all possible heaps, a value bounded by the number of processors; on my machine, I have a total of 20 logical processors. The following code can be used to actually test for the Minima the results of which are given right after by using the Etlx API as a part of the Trace Event library:
 
@@ -297,34 +296,9 @@ pathsToTraces
 ))
 ```
 
-| Heap Count | Percentage Pause Time In GC |
-| ---------- | --------------------------- |
-|1 | 5.560138489 |
-|2 | 4.362703288 |
-|3 | 9.637953564 |
-|4 | 6.918216393 |
-|5 | 8.237923925 |
-|6 | 8.489095309 |
-|7 | 9.896900052 |
-|8 | 7.143749098 |
-|9 | 6.821891076 |
-|10 | 7.843345234 |
-|11 | 6.97647052 |
-|12 | 11.0452987 |
-|13 | 9.234515549 |
-|14 | 9.760930152 |
-|15 | 5.23704259 |
-|16 | 5.324252566 |
-|17 | 5.202236787 |
-|18 | 7.426270059 |
-|19 | 6.550077543 |
-|20 | 8.678660242 |
-
-Clearly, our algorithm was able to get to the Min for Heap 2.
-
-
-
 #### Event Tracing For Windows (ETW) Primer
+
+ETW provides a way to capture traces that comprise of structured log messages raised either by User or Kernel Providers that generate these log messages. The specific provider we relied for the previous experiment was that of the CLR that aggregated the data in a clean way to get us the details for the Percentage Pause Time spent in the GC.
 
 
 ### Implementation Of Bayesian Optimization In FSharp
@@ -412,7 +386,7 @@ In addition to these steps, we are also keeping track of the intermediate steps 
 // src/Optimization.Core/Model.fs
 
 // Iterate with each step to find the most optimum next point.
-seq { 0..(iterations - 1) }
+seq { 0..(iterations - 1) } // n ∈ [0, iterations) and n is a natural number.
 |> Seq.iter(fun iteration -> (
 
     // Select next point to sample via the surrogate function i.e. estimation of the objective that maximizes the acquisition function.

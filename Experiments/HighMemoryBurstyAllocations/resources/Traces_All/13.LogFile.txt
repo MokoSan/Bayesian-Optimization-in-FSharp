@@ -1,4 +1,4 @@
-PerfView logging started at 12/21/2022 2:33:40 PM
+PerfView logging started at 12/21/2022 4:27:21 PM
 [EXECUTING: PerfView start /GCCollectOnly /NoGUI /AcceptEULA /Merge:true /DataFile:C:\Users\mukun\source\repos\FSharpAdvent_2022\Experiments\HighMemoryBurstyAllocations\resources\Traces_All\13.etl /LogFile:C:\Users\mukun\source\repos\FSharpAdvent_2022\Experiments\HighMemoryBurstyAllocations\resources\Traces_All\13.etl.log]
 [Kernel Log: C:\Users\mukun\source\repos\FSharpAdvent_2022\Experiments\HighMemoryBurstyAllocations\resources\Traces_All\13.kernel.etl]
 Kernel keywords enabled: Process
@@ -11,8 +11,8 @@ Enabling CLR Events: GC
 Enabling Provider:ClrNative Level:Informational Keywords:0x1 Stacks:0 Values: Guid:47c3ba0c-77f1-4eb0-8d4d-aef447f16a85
 Enabling Provider:CLR Level:Informational Keywords:0x1 Stacks:0 Values: Guid:e13c0d23-ccbc-4e12-931b-d9cc2eee27e4
 Enabling Providers specified by the user.
-[DONE 14:33:41 SUCCESS: PerfView start /GCCollectOnly /NoGUI /AcceptEULA /Merge:true /DataFile:C:\Users\mukun\source\repos\FSharpAdvent_2022\Experiments\HighMemoryBurstyAllocations\resources\Traces_All\13.etl /LogFile:C:\Users\mukun\source\repos\FSharpAdvent_2022\Experiments\HighMemoryBurstyAllocations\resources\Traces_All\13.etl.log]
-PerfView logging started at 12/21/2022 2:34:03 PM
+[DONE 16:27:21 SUCCESS: PerfView start /GCCollectOnly /NoGUI /AcceptEULA /Merge:true /DataFile:C:\Users\mukun\source\repos\FSharpAdvent_2022\Experiments\HighMemoryBurstyAllocations\resources\Traces_All\13.etl /LogFile:C:\Users\mukun\source\repos\FSharpAdvent_2022\Experiments\HighMemoryBurstyAllocations\resources\Traces_All\13.etl.log]
+PerfView logging started at 12/21/2022 4:27:44 PM
 [EXECUTING: PerfView stop /GCCollectOnly /NoGUI /AcceptEULA /Merge:true /DataFile:C:\Users\mukun\source\repos\FSharpAdvent_2022\Experiments\HighMemoryBurstyAllocations\resources\Traces_All\13.etl /LogFile:C:\Users\mukun\source\repos\FSharpAdvent_2022\Experiments\HighMemoryBurstyAllocations\resources\Traces_All\13.etl.log]
 Stopping tracing for sessions 'NT Kernel Logger' and 'PerfViewGCSession'.
 No Heap events were active for this trace.
@@ -26,7 +26,7 @@ If you know your process has exited, use /noRundown qualifer to skip this step.
 Rundown File Length: 3.9MB delta: 3.9MB
 Rundown File Length: 3.9MB delta: 0.0MB
 Rundown file has stopped growing, assuming rundown complete.
-CLR Rundown took 2.664 sec.
+CLR Rundown took 2.625 sec.
 Done stopping sessions.
 Ensuring .NET Allocation profiler not installed.
 Detected 64 bit system, removing 32 bit keys.
@@ -38,11 +38,11 @@ Symbol reader _NT_SYMBOL_PATH= {
 This can be set using the File -> Set Symbol Path dialog on the Stack Viewer.
 Created SymbolReader with SymbolPath C:\Users\mukun\source\repos\FSharpAdvent_2022\Experiments\HighMemoryBurstyAllocations\resources\Traces_All
 Setting SYmbolReaderOptions forces clearing Pdb lookup cache
-NGenSymbolFiles == false, skipping NGEN pdb generation
 Starting Merging of C:\Users\mukun\source\repos\FSharpAdvent_2022\Experiments\HighMemoryBurstyAllocations\resources\Traces_All\13.etl
-Merging took 0.8 sec
+NGenSymbolFiles == false, skipping NGEN pdb generation
+Merging took 0.7 sec
 Moving C:\Users\mukun\source\repos\FSharpAdvent_2022\Experiments\HighMemoryBurstyAllocations\resources\Traces_All\13.etl.new to C:\Users\mukun\source\repos\FSharpAdvent_2022\Experiments\HighMemoryBurstyAllocations\resources\Traces_All\13.etl
 Deleting temp file
-Merge and NGEN PDB Generation took 0.791 sec.
+Merge and NGEN PDB Generation took 0.702 sec.
 Merge output file C:\Users\mukun\source\repos\FSharpAdvent_2022\Experiments\HighMemoryBurstyAllocations\resources\Traces_All\13.etl
 [Zipping ETL file C:\Users\mukun\source\repos\FSharpAdvent_2022\Experiments\HighMemoryBurstyAllocations\resources\Traces_All\13.etl]
