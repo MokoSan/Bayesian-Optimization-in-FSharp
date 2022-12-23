@@ -4,7 +4,7 @@
 
 ## Introduction
 
-For my 6th F# Advent submission (6 years in a row!!), I worked on combining the lessons I learnt from my last 2 submissions: [2020: Bayesian Inference in FSharp](http://bit.ly/3hhhRjq) and [2021: Perf Avore: A Performance Analysis and Monitoring Tool in FSharp](https://github.com/MokoSan/PerfAvore/blob/main/AdventSubmission.md#perf-avore-a-performance-analysis-and-monitoring-tool-in-fsharp) to develop a Bayesian Optimization algorithm in F# to solve global optimization problems for a single variable. __Bayesian Optimization__ is an iterative optimization algorithm used to find the most optimal element like any other optimization algorithm however, where it shines in comparison to others is when the criterion or objective function is a black box function. A black box function indicates the prospect of a lack of an analytic expression or known mathematical formula for the objective function and/or details about other properties for example, knowing if the derivative exists for the function so as to make use of other optimization techniques such as [Stochastic Gradient Descent](https://en.wikipedia.org/wiki/Stochastic_gradient_descent).
+For my 6th F# Advent submission (6 years in a row!!), I worked on combining the lessons I learnt from my last 2 submissions: [2020: Bayesian Inference in FSharp](http://bit.ly/3hhhRjq) and [2021: Perf Avore: A Performance Analysis and Monitoring Tool in FSharp](https://github.com/MokoSan/PerfAvore/blob/main/AdventSubmission.md#perf-avore-a-performance-analysis-and-monitoring-tool-in-fsharp) to develop a Bayesian Optimization algorithm in F# to solve global optimization problems for a single variable that can be used in the context of Performance Tuning and Optimization amongst other use cases. __Bayesian Optimization__ is an iterative optimization algorithm used to find the most optimal element like any other optimization algorithm however, where it shines in comparison to others is when the criterion or objective function is a black box function. A black box function indicates the prospect of a lack of an analytic expression or known mathematical formula for the objective function and/or details about other properties for example, knowing if the derivative exists for the function so as to make use of other optimization techniques such as [Stochastic Gradient Descent](https://en.wikipedia.org/wiki/Stochastic_gradient_descent).
 
 In this submission, I plan to demonstrate how I developed and applied the Bayesian Optimization algorithm to various experiments including one making use of Event Tracing for Windows (ETW) profiles to obtain the best parameters and highlight how I made use of F#'s functional features. In terms of using F#, I have had a fabulous experience, as always! I have expounded on this [here](#experience-developing-in-fsharp).
 
@@ -13,14 +13,14 @@ In this submission, I plan to demonstrate how I developed and applied the Bayesi
 The motivation behind this submission is 2-fold:
 
 1. I have been very eagerly trying to learn about Bayesian Optimization and figured this was a perfect time to dedicate myself to fully understanding the internals by implementing the algorithm in FSharp.
-2. I am yet to find a library (if you know of one, please let me know) that naturally combines Bayesian Optimization with Performance Engineer in .NET to come up with optimal parameters to use. I believe the applications of this are many in the field of performance engineering and figured I create reusable components that can be leveraged by others.
+2. I am yet to find a library (if you know of one, please let me know) that naturally combines Bayesian Optimization with Performance Engineering in .NET to come up with optimal parameters to use for a specified workload. I believe the applications of this are many in the field of performance engineering and figured I create reusable components that can be leveraged by others.
 
 ## Goals
 
 To kick things off and to be concrete about the objectives of this submission, the 3 main goals are:
 
 1. [To Describe Bayesian Optimization](#bayesian-optimization). 
-2. [Present the Multiple Applications of the Bayesian Optimization from Simple to more Complex](#experiments):
+2. [To Present the Multiple Applications of the Bayesian Optimization Implementation from Simple to More Complex in the Form of Repeatable Experiments](#experiments):
    1. [Maximizing ``Sin`` function between -π and π.](#experiment-1-maximizing-the-sin-function-between-π-and--π)
    2. [Minimizing The Wall Clock Time of A Simple Command Line App](#experiment-2-minimizing-the-wall-clock-time-of-a-simple-command-line-app): Finding the minima of the wall clock time of execution of an independent process based on the input.
    3. [Minimizing The Percent of Time Spent during Garbage Collection For a High Memory Load Case With Bursty Allocations By Varying The Number of Heaps](#experiment-3-minimizing-the-garbage-collection-gc-pause-time--by-varying-the-number-of-heaps): Finding the minima of the percent of time spent during garbage collection based on pivoting on the number of Garbage Collection Heaps or Threads using Traces obtained via Event Tracing For Windows (ETW). 
@@ -45,17 +45,17 @@ The way I understood this algorithm was through a [socratic approach](https://en
 
 __Bayesian Optimization__ is an iterative optimization algorithm used to find the most optimal element like any other optimization algorithm however, where it shines in comparison to others is when the criterion or objective function is a black box function. A black box function indicates the prospect of a lack of an analytic expression or known mathematical formula for the objective function and/or details about other properties for example, knowing if the derivative exists for the function so as to make use of other optimization techniques such as [Stochastic Gradient Descent](https://en.wikipedia.org/wiki/Stochastic_gradient_descent).
 
-To contrast with 2 other popular optimization techniques namely, **Grid Search Optimization** and **Random Search Optimization** whose intractability and efficiency, respectively come into question, Bayesian Optimization uses information from previous iterations to get to the optima in a more computational efficient and directed based on the data.
+To contrast with 2 other popular optimization techniques namely, [**Grid Search Optimization**](https://en.wikipedia.org/wiki/Hyperparameter_optimization#Grid_search) and [**Random Search Optimization**](https://en.wikipedia.org/wiki/Hyperparameter_optimization#Random_search) whose intractability and efficiency, respectively come into question, Bayesian Optimization uses information from previous iterations to get to the optima in a more computational efficient and directed way based on the data.
 
-To summarize, Bayesian Optimization aims to, with the fewest number of iterations, find the global optima of a function that could be a black box based function in a way that previous data points are used to make the best guess as to where the optima _could_ be.
+To summarize, Bayesian Optimization aims to, with the fewest number of iterations, find the global optima of a function that could be a black box based function by making use of previous data points to make the best guess as to where the global optima could be.
 
 ### What Are The Components of a Bayesian Optimization Algorithm? 
 
 There are 3 main components:
 
-1. __Surrogate Model__: The surrogate model is used as for approximation of the objective function where new points can be fit and predictions can be made. More details are [here](#surrogate-model).
-2. __Acquisition Function__: The acquisition function helps discerning the next point to sample. More details are [here](#acquisition-function).
-3. __Iteration Loop__: The loop that facilitates the following:
+1. __The Surrogate Model__: The surrogate model is used as for approximation of the objective function where new points can be fit and predictions can be made. More details are [here](#surrogate-model).
+2. __The Acquisition Function__: The acquisition function helps discerning the next point to sample. More details are [here](#acquisition-function).
+3. __The Iteration Loop__: The loop that facilitates the following:
    1. Make predictions using the surrogate model. 
    2. Based on the predictions from 1., apply the acquisition function.
    3. Identify the point that maximizes the acquisition function. 
@@ -67,9 +67,9 @@ Diagrammatically,
 
 ### What is 'Bayesian' About the Bayesian Optimization Algorithm? 
 
-The efficiency of the Bayesian Optimization algorithm stems from the use of Bayes Theorem to direct the search of the global optima by updating prior beliefs about the state of the objective function in light of new observations made by sampling or choosing the next point to evaluate as a potential candidate of the optima. For those new to the world of Bayes Theorem, I have written up a summary that can be found [here](https://nbviewer.org/github/MokoSan/FSharpAdvent_2020/blob/main/BayesianInferenceInF%23.ipynb#Bayes-Theorem) as a part of my previous advent submission. 
+The efficiency of the Bayesian Optimization algorithm stems from the use of Bayes Theorem to direct the search of the global optima by updating prior beliefs about the state of the objective function in light of new observations made by sampling or choosing the next point to evaluate as a potential candidate for the global optima. For those new to the world of Bayes Theorem, I have written up a summary that can be found [here](https://nbviewer.org/github/MokoSan/FSharpAdvent_2020/blob/main/BayesianInferenceInF%23.ipynb#Bayes-Theorem) as a part of a previous advent submission. 
 
-To elaborate just a bit more here (there is a section below under [Gaussian Processes](#gaussian-processes) that covers the model most commonly used for this purpose of approximating the objective function), we choose a surrogate model that helps us with approximating the objective function that's initialized based on some prior information and is updated as and when we sample or observe new data points. Subsequently with each iteration, we construct a posterior distribution that is incorporative of the previously observed data points with the expectation that over time it more closely represents the actual objective function which, as mentioned before, can be a black-box function.
+To elaborate a bit more, (there is a section below under [Gaussian Processes](#gaussian-processes) that covers the model most commonly used for this purpose of approximating the objective function) we choose a surrogate model that helps us with approximating the objective function that's initialized based on some prior information and is updated as and when we sample or observe new data points. Subsequently with each iteration, we construct a posterior distribution that is incorporative of the previously observed data points with the expectation that over time it more closely represents the actual objective function which, as mentioned before, can be a black-box function.
 
 ### What are some of the disadvantages of the Bayesian Optimization Algorithm?
 
@@ -77,7 +77,7 @@ To elaborate just a bit more here (there is a section below under [Gaussian Proc
    1. The Kernel Parameters.
    2. Resolution of the Initial Data or how granular our model should be in terms of data points.
    3. Number of iterations. 
-2. __Model Estimation Takes Time__: Getting the surrogate model to a point where it is behaving like a reasonable approximation of the true objective function can take quite a few iterations, which implies more time spent to get the result. 
+2. __Model Estimation Takes Time__: Getting the surrogate model to a point where it is behaving like a reasonable approximation of the true objective function can take quite a few iterations dependent on the shape of the objective function, which implies more time spent to get the result. 
 3. __Naive Implementation Isn't Parallelizable By Default__: We need to add more complexity to the model to be able to parallelize the algorithm.
 
 Here are some FAQs in terms of the usage of the library:
@@ -408,7 +408,7 @@ The example in [Experiment 3](#experiment-3-minimizing-the-garbage-collection-gc
 
 The three components, as mentioned [above](#what-are-the-components-of-a-bayesian-optimization-algorithm), of the Bayesian Optimization algorithm are the **Surrogate Model**, **Acquisition Function** and the **Iteration Loop**. To reiterate, the surrogate model, as hinted to by the name, is a model that serves as an approximation of the objective function while the acquisition function guides where the algorithm should search next where the best observation is most likely to reach the global optima and the iteration loop facilitates the maximization of the acquisition function on the basis of the predictions made by the surrogate model thereby presenting the next point to sample.
 
-To quickly go over the preliminary parts of the domain, we first have a concept of a __Goal__ which, is implemented as a Discriminated Union of a choice of minimization or maximization of the objective function.
+To go over the preliminary parts of the domain, we first have a concept of a __Goal__ which, is implemented as a Discriminated Union of a choice of minimization or maximization of the objective function.
 
 ```fsharp
 // src/Optimization.Core/Domain.fs
@@ -454,21 +454,10 @@ type OptimaResult        =
     }
 ```
 
-Since are using Gaussian Processes for this implementation, a ``Gaussian Model`` seemed apt in terms of nomenclature and is defined as:
-
-```fsharp
-type GaussianModel =
-    {
-        GaussianProcess     : GaussianProcess
-        ObjectiveFunction   : ObjectiveFunction
-        Inputs              : double list
-        AcquisitionFunction : AcquisitionFunction
-    }
-```
-
 Now that we have set the stage of the definitions of the major components of the model, we can get more specific. 
 
 #### Surrogate Model
+
 
 A number of techniques can be used to represent the surrogate model however, one of the most popular ways to do so is to use __Gaussian Processes__ that are defined as the following to be used in the ``GaussianModel`` record type above:
 
@@ -478,6 +467,18 @@ and GaussianProcess =
         KernelFunction           : KernelFunction
         ObservedDataPoints       : List<DataPoint>
         mutable CovarianceMatrix : Matrix<double>
+    }
+```
+
+and since we are using Gaussian Processes for this implementation, a ``Gaussian Model`` seemed like an apt name and is defined as and used above in the ``OptimizationRequest``:
+
+```fsharp
+type GaussianModel =
+    {
+        GaussianProcess     : GaussianProcess
+        ObjectiveFunction   : ObjectiveFunction
+        Inputs              : double list
+        AcquisitionFunction : AcquisitionFunction
     }
 ```
 
@@ -517,7 +518,7 @@ $$ k(x_a, x_b) = \sigma^2 \exp \left(-\frac{ \left\Vert x_a - x_b \right\Vert^2}
 
 With:
 
- - $σ^2$ the overall variance (is also known as amplitude or the vertical variance).
+ - $σ^2$ the overall variance is also known as amplitude or the vertical variance.
  - $\ell$ the length scale gives us the smoothness between the two points.
 
 To allow more kernels to be defined, we define the ``KernelFunction`` type as:
@@ -580,7 +581,7 @@ updatedCovarianceMatrix[size - 1,  size - 1] <- matchedKernel dataPoint.X data
 
 ###### Making Prediction Using the Gaussian Process Model
 
-Using the Gaussian Process Model to make predictions or generating the posterior involves the following for each point registered by the gaussian process and the output is the mean and the level of uncertainty (in a very Bayesian fashion rather than a single point). The output of the prediction is modeled in the following way:
+Using the Gaussian Process Model to make predictions essentially means we are generating and sampling the posterior to give us the mean and confidence levels about our sample (This is very __Bayesian__ in contrast to just returning a single point). The output of the prediction is modeled in the following way:
 
 ```fsharp
 // src/Optimization.Core/Domain.fs
@@ -627,7 +628,7 @@ A more in-depth tutorial on the posterior calculation that leads to the predicti
 
 #### Acquisition Function
 
-Where to sample next within the specified range is dictated by the acquisition function. This function conducts a trade off between "Exploitation and Exploration". __Exploitation__ means we are sampling or choosing points where the surrogate model is know to produce high objective function result. __Exploration__ means we are sampling or choosing points we haven't explored before or where the prediction uncertainty is high. The point where the acquisition function is maximized is the next point to sample. 
+Where to sample next within the specified range is dictated by the acquisition function. This function conducts a trade off between ["Exploitation and Exploration"](https://www.davidsilver.uk/wp-content/uploads/2020/03/XX.pdf). __Exploitation__ means we are sampling or choosing points where the surrogate model is know to produce high objective function result. __Exploration__ means we are sampling or choosing points we haven't explored before or where the prediction uncertainty is high. The point where the acquisition function is maximized is the next point to sample. 
 
 A very popular acquisition function is called "Expected Improvement (EI)" and is given by:
 
@@ -672,7 +673,7 @@ As described above, in the bayesian optimization loop we do the following:
 3. Identify the point that maximizes the acquisition function. 
 4. Update the model with the new data point.
 
-In addition to these steps, we are also keeping track of the intermediate steps of the calculation. 
+In addition to these steps, we are also keeping track of the intermediate steps of the calculation to help with visualizing the results. 
 
 ```fsharp
 // src/Optimization.Core/Model.fs
@@ -706,7 +707,7 @@ seq { 0..(request.Iterations - 1) }
 ))
 ```
 
-And there we have it - at a high level how the Bayesian Optimization algorithm is implemented. There is of course room for significant amount of improvement here such as:
+And there we have it! There is of course room for significant amount of improvement here such as:
 
 1. Adding early stopping if we aren't making much progress with each subsequent iteration.
 2. Adding the ability to optimize multiple variables.
