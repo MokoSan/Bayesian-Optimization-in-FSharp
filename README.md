@@ -52,7 +52,7 @@ printfn "Optima: Sin(x) is maximized when x = %A at %A" optimaResults.Optima.X o
    1. ~~Sin Function.~~
    2. ~~Simple Workload.~~
    3. ~~High Memory Load Based Bursty Allocations.~~
-9.  Unit Tests.
+9.  ~~Unit Tests.~~
 10. Clean up main logic.
    1. Possibly add computation expressions.
    2. Possibly add ROP-esque behavior.

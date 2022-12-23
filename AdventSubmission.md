@@ -4,7 +4,7 @@
 
 ## Introduction
 
-For my 6th F# Advent submission (6 years in a row!!), I worked on combining the lessons I learnt from my last 2 submissions: [2020: Bayesian Inference in FSharp](http://bit.ly/3hhhRjq) and [2021: Perf Avore: A Performance Analysis and Monitoring Tool in FSharp](https://github.com/MokoSan/PerfAvore/blob/main/AdventSubmission.md#perf-avore-a-performance-analysis-and-monitoring-tool-in-fsharp) to develop a Bayesian Optimization algorithm in F# to solve global optimization problems for a single variable. The Bayesian Optimization algorithm is compatible with complex black-box objective functions and are used an effort to discern the best parameters to use based on the specified workload or process. In this submission, I plan to demonstrate how I developed and applied the Bayesian Optimization algorithm to various experiments including one making use of Event Tracing for Windows (ETW) profiles to obtain the best parameters and highlight how I made use of F#'s functional features. In terms of using F#, I have had a fabulous experience, as always! I have expounded on this [here](#experience-developing-in-fsharp).
+For my 6th F# Advent submission (6 years in a row!!), I worked on combining the lessons I learnt from my last 2 submissions: [2020: Bayesian Inference in FSharp](http://bit.ly/3hhhRjq) and [2021: Perf Avore: A Performance Analysis and Monitoring Tool in FSharp](https://github.com/MokoSan/PerfAvore/blob/main/AdventSubmission.md#perf-avore-a-performance-analysis-and-monitoring-tool-in-fsharp) to develop a Bayesian Optimization algorithm in F# to solve global optimization problems for a single variable. Bayesian Optimization is an optimization algorithm compatible with complex black-box objective functions and is used an effort to discern the best parameters based on the specified workload or process. In this submission, I plan to demonstrate how I developed and applied the Bayesian Optimization algorithm to various experiments including one making use of Event Tracing for Windows (ETW) profiles to obtain the best parameters and highlight how I made use of F#'s functional features. In terms of using F#, I have had a fabulous experience, as always! I have expounded on this [here](#experience-developing-in-fsharp).
 
 ## Goals
 
@@ -79,7 +79,7 @@ Now that I have somewhat explained the algorithm, the next steps are to try to e
 
 1. __Kernel Parameters For the Squared Exponential Kernel: Length Scale and Variance__: The length controls the smoothness between the points while the Variance controls the vertical amplitude. A more comprehensive explanation can be found [here](https://peterroelants.github.io/posts/gaussian-process-kernels/#Exponentiated-quadratic-kernel) but in a nutshell, the length scale determines the length of the 'wiggles' in your function and the variance determines how far out the function can fluctuate.
 
-2. __Resolution__: Our priors are initialized as a list ranging from the min and max provided when we create the model. The resolution indicates the number of elements we'd want in the priors that'll be initialized as a uniform list. The code for this is as follows:
+2. __Resolution__: Our priors are uniformly initialized as a list ranging from the min and max provided when we create the model. The resolution indicates the number of elements we'd want in the priors that'll be initialized as a uniform list. The code for this is as follows:
 
 ```fsharp 
 // src/Optimization.Core/Model.fs
@@ -91,7 +91,7 @@ let inputs : double list = seq { for i in 0 .. (resolution - 1) do i }
 
 The idea here is to use a higher resolution where precision is of paramount importance i.e. you can guess that the optima will require many digits after the decimal point. 
 
-3. __Iterations__: The number of iterations the Bayesian Optimization Algorithm should run for. The more the better, however, we'd be wasting cycles if we have already reached the maxima and are continuing to iterate; this can be curtailed by early stopping.
+3. __Iterations__: The number of iterations the Bayesian Optimization Algorithm should run for i.e. the number of times the objective function will be computed by running the workload to get to the optima. The more the better, however, we'd be wasting cycles if we have already reached the maxima and are continuing to iterate; this can be curtailed by early stopping.
 
 ### How Do I Interpret the Charts of the Algorithm Below? 
 
@@ -101,7 +101,7 @@ An example of a chart the algorithm is:
 
 Here are the details:
 
-1. __Predictions__: The predictions represent the mean of the results obtained from the underlying model that's the approximate of the unknown objective function. This model is also known as the Surrogate Model and more details about this can be found [here](#surrogate-model)
+1. __Predictions__: The predictions represent the mean of the results obtained from the underlying model that's the approximate of the unknown objective function. This model is also known as the Surrogate Model and more details about this can be found [here](#surrogate-model). The blue ranges indicate the area between the upper and lower limits based on the confidence generated by the posterior.
 2. __Acquisition Results__ series represents the acquisition function whose maxima indicates where it is best to search. More details on how the next point to search is discerned can be found [here](#acquisition-function).
 3. __Next Point__: The next point is derived from the maximization of the acquisition function and points to where we should sample next.
 4. __Observed Data__: The observed data is the data collected from iteratively maximizing the acquisition function. As the number of observed data points increases with increased iterations, the expectation is that the predictions and observed data points converge if the model parameters are set correctly.
@@ -128,21 +128,22 @@ let resolution : int = 20_000
 
 // Creating the Model.
 let gaussianModelForSin() : GaussianModel =
-    let gaussianModelForSin() : GaussianModel =
     let squaredExponentialKernelParameters : SquaredExponentialKernelParameters = { LengthScale = 1.; Variance = 1. }
     let gaussianProcess : GaussianProcess =  createProcessWithSquaredExponentialKernel squaredExponentialKernelParameters
     let sinObjectiveFunction : ObjectiveFunction = QueryContinuousFunction Trig.Sin
-    createModel gaussianProcess sinObjectiveFunction -Math.PI Math.PI resolution 
+    createModel gaussianProcess sinObjectiveFunction ExpectedImprovement -Math.PI Math.PI resolution 
 
 // Using the Model to generate the optimaResults.
 let model         : GaussianModel = gaussianModelForSin()
-let optimaResults : OptimaResults = findOptima model Goal.Max iterations 
+let optimaResults : OptimaResults = findOptima { Model = model; Goal = Goal.Max; Iterations = iterations }
 printfn "Optima: Sin(x) is maximized when x = %A at %A" optimaResults.Optima.X optimaResults.Optima.Y
 ```
 
 The result of the experiment is: ``Optima: Sin(x) is maximized when x = 1.570717783 at 0.9999999969``. 
 
-The optima (maxima, in this case) is very close to $\frac{\pi}{2} \approx 1.57079632679$ where $sin(x) = 1$; this was all achieved within only 10 iterations with a high enough resolution i.e. with 20,000 points between $-\pi$ and $\pi$ and therefore, we know this algorithm is optimizing as expected. To help better visualize what's happening under the hood, I have created some charting helpers that chart the pertinent series for each iteration and wrap them up into a gif. These charts can be found [here](Experiments/Sin/resources/).
+The optima (maxima, in this case) is very close to the real maxima of $\frac{\pi}{2} \approx 1.57079632679$ where $sin(x) = 1$; this was all achieved within only 10 iterations with a high enough resolution i.e. with 20,000 points equally partitioning the range between $-\pi$ and $\pi$ and therefore, we know this algorithm is optimizing as expected. 
+
+To help better visualize what's happening under the hood, I have created some charting helpers that chart the pertinent series for each iteration and wrap them up into a gif. These charts can be found [here](Experiments/Sin/resources/).
 
 ```fsharp
 [<Literal>]
@@ -159,11 +160,13 @@ The output gif that's the combination of the iterations is:
 
 ![Sin Function](./Experiments/Sin/resources/Combined.gif)
 
-The function is smooth and therefore, the length scale and variance of 1. respectively are sufficient to get us to a good point where we achieve the optima in a few number of iterations. The caveat here, however, was the selection of the resolution that had to be high since we want a certain degree of precision in terms of calculating the optima.
+The function is smooth and therefore, the length scale and variance of 1. respectively are sufficient to get us to a good point where we achieve the optima in a few number of iterations. The caveat here, however, was the selection of the resolution that had to be high since we want a certain degree of precision in terms of calculating the optima. 
+
+This experiment is an example of a mathematical function being optimized. More examples of these can be found [here](src/Optimization.UnitTests/Model.fs) in the Unit Tests.
 
 ### Experiment 2: Minimizing The Wall Clock Time of A Simple Command Line App
 
-The Objective Function is the wall clock time from running a C# program that sleeps for a hard-coded amount of time based on a given input that we are trying to minimize. The full code is available [here](https://github.com/MokoSan/Bayesian-Optimization-in-FSharp/blob/main/src/Workloads/SimpleWorkload/Program.cs).
+The Objective Function meant to be minimized here is the wall clock time from running a C# program that sleeps for a hard-coded amount of time based on a given input. The full code is available [here](https://github.com/MokoSan/Bayesian-Optimization-in-FSharp/blob/main/src/Workloads/SimpleWorkload/Program.cs).
 
 The gist of the trivial algorithm is the following where we sleep for the shortest amount of time if the input is between 1 and 1.5, a slightly shorter amount of time if the input is >= 1.5 but < 2.0 and the most amount of time in all other cases. The premise here is to try and see if we are able to get the optimization algorithm detect the inputs that trigger the lowest amount of sleep time and thereby, the minima of the wall clock time of the program.
 
@@ -216,26 +219,34 @@ let gaussianModelForSimpleWorkload() : GaussianModel =
     let gaussianProcess : GaussianProcess =  createProcessWithSquaredExponentialKernel squaredExponentialKernelParameters
     let queryProcessInfo : QueryProcessInfo = { WorkloadPath = workloadPath; ApplyArguments = (fun input -> $"--input {input}") } 
     let queryProcessObjectiveFunction : ObjectiveFunction = (QueryProcessByElapsedTimeInSeconds queryProcessInfo)
-    createModel gaussianProcess queryProcessObjectiveFunction 0 5 resolution 
+    createModel gaussianProcess queryProcessObjectiveFunction ExpectedImprovement 0 5 resolution 
 
 let model    : GaussianModel = gaussianModelForSimpleWorkload()
-let optima   : OptimaResults = findOptima model Goal.Min iterations 
+let optima   : OptimaResults = findOptima { Model = model; Goal = Goal.Min; Iterations = iterations }
 printfn "Optima: Simple Workload Time is minimized when the input is %A at %A seconds" optima.Optima.X optima.Optima.Y
 ```
 
 The result was: ``Optima: Simple Workload Time is minimized when the input is 1.372745491 at 0.13 seconds``.
 
-A gif of the algorithm is:
+A gif of the charted algorithm is:
 
 ![Simple Workload](Experiments/SimpleWorkload/resources/Combined.gif)
 
 The inputs here didn't require a highly precise resolution as the previous experiment and therefore, I set them to a moderately high amount of 500. I had to play around with the number of iterations as this was a more complex objective function in the eyes of the surrogate model; my strategy here was to start high and make my way to an acceptable amount. The other parameters i.e. Length Scale and Variance were the same, as before. 
 
-It's worth mentioning that the ``QueryProcessInfo`` type is used to specify the path to the workload and a mechanism to set the argument for the input we are pivoting on.
+It's worth mentioning that the ``QueryProcessInfo`` type is used to specify the path to the workload and a mechanism to set the argument for the input we are pivoting on and is defined:
+
+```fsharp
+type QueryProcessInfo  = 
+    {
+        WorkloadPath   : string 
+        ApplyArguments : string -> string 
+    }
+```
 
 ### Experiment 3: Minimizing the Garbage Collection (GC) Pause Time % By Varying The Number of Heaps 
 
-The workload code that can be found [here](src/Workloads/HighMemory_BurstyAllocations/Program.cs) first launches a separate process that induces a state of high memory; the source code for the high memory load inducer can be found [here](https://github.com/dotnet/performance/blob/main/src/benchmarks/gc/src/exec/env/make_memory_load.c). Subsequently, a large number of allocations are made intermittently. While this workload is executing, we will have been taking a ETW Trace that'll contain the GC Pause Time %. The idea here is to stress the memory of a machine and see how bursty allocations perform with varying Garbage Collection heaps the value of which, is controlled by 2 environment variables: ``COMPlus_GCHeapCount`` and ``COMPlus_GCServer`` where the former needs to be specified in Hexadecimal format indicating the number of heaps to be used bounded by the number of logical processors and the latter is a boolean (0 or 1).
+The workload code, that can be found [here](src/Workloads/HighMemory_BurstyAllocations/Program.cs), first launches a separate process that induces a state of high memory; the source code for the high memory load inducer can be found [here](https://github.com/dotnet/performance/blob/main/src/benchmarks/gc/src/exec/env/make_memory_load.c). Subsequently, a large number of allocations are intermittently made. While this workload is executing, we will have been taking a ETW Trace that'll contain the GC Pause Time %. The idea behind the experiment is to stress the memory of a machine and see how bursty allocations perform with varying Garbage Collection heaps the value of which, is controlled by 2 environment variables: ``COMPlus_GCHeapCount`` and ``COMPlus_GCServer`` where the former needs to be specified in Hexadecimal format indicating the number of heaps to be used bounded by the number of logical processors and the latter is a boolean (0 or 1).
 
 The code to get this experiment going can be found [here](Experiments/HighMemoryBurstyAllocations/) but the following are pertinent excerpts:
 
@@ -268,10 +279,10 @@ let getHighMemoryBurstyAllocationsModel() : GaussianModel =
         }
 
     let queryProcessObjectiveFunction : ObjectiveFunction = QueryProcessByTraceLog queryProcessByTraceLog
-    createModelWithDiscreteInputs gaussianProcess queryProcessObjectiveFunction 1 System.Environment.ProcessorCount resolution
+    createModelWithDiscreteInputs gaussianProcess queryProcessObjectiveFunction ExpectedImprovement 1 System.Environment.ProcessorCount resolution
 
-let model    : GaussianModel      = getHighMemoryBurstyAllocationsModel()
-let optima   : OptimaResults      = findOptima model Goal.Min iterations
+let model    : GaussianModel = getHighMemoryBurstyAllocationsModel()
+let optima   : OptimaResults = findOptima { Model = model; Goal = Goal.Min; Iterations = iterations }
 printfn "Optima: GC Pause Time Percentage is minimized when the input is %A at %A" optima.Optima.X optima.Optima.Y
 ```
 
@@ -386,7 +397,7 @@ The example in [Experiment 3](#experiment-3-minimizing-the-garbage-collection-gc
 
 ### Implementation Of Bayesian Optimization In FSharp
 
-The three components, as mentioned [above](#what-are-the-components-of-a-bayesian-optimization-algorithm), of the Bayesian Optimization algorithm are the **Surrogate Model**, **Acquisition Function** and the **Iteration Loop**. To reiterate, the surrogate model, as hinted to by the name, is a model that serves as an approximation of the objective function while the acquisition function guides where the algorithm should search next where the best observation is most likely to reach the global optima and the iteration loop facilitates the maximization of the acquisition function on the basis of the predictions made by the surrogate model thereby presenting the next point to sample.
+The three components, as mentioned [above](#what-are-the-components-of-a-bayesian-optimization-algorithm), of the Bayesian Optimization algorithm are the **Surrogate Model**, **Acquisition Function** and the **Iteration Loop**. To reiterate, the surrogate model, as hinted to by the name, is a model that serves as an approximation of the objective function while the acquisition function guides where the algorithm should search next where the best observation is most likely to reach the global optima and the iteration loop facilitates the maximization of the acquisition function on the basis of the predictions made by the surrogate model thereby presenting the next point to sample. 
 
 #### Surrogate Model
 
@@ -498,7 +509,7 @@ let confidence : double         = Math.Abs( matchedKernelFunction input input  -
 { Mean = mu; LowerBound = mu - confidence; UpperBound = mu + confidence; Input = input }
 ```
 
-A more in-depth tutorial on this can be found [here](http://krasserm.github.io/2018/03/19/gaussian-processes/).
+A more in-depth tutorial on the posterior calculation that leads to the prediction computation can be found [here](http://krasserm.github.io/2018/03/19/gaussian-processes/).
 
 #### Acquisition Function
 
@@ -538,7 +549,7 @@ In addition to these steps, we are also keeping track of the intermediate steps 
 // src/Optimization.Core/Model.fs
 
 // Iterate with each step to find the most optimum next point.
-seq { 0..(iterations - 1) } // n ∈ [0, iterations)
+seq { 0..(request.Iterations - 1) }
 |> Seq.iter(fun iteration -> (
 
     // Select next point to sample via the surrogate function i.e. estimation of the objective that maximizes the acquisition function.
@@ -547,12 +558,18 @@ seq { 0..(iterations - 1) } // n ∈ [0, iterations)
     let optimumValueFromAcquisition : AcquisitionFunctionResult = acquisitionResults.MaxBy(fun e -> e.AcquisitionScore)
     let nextPoint                   : double = optimumValueFromAcquisition.Input
 
+    // Copy the state of the ObservedDataPoints for this iteration.
+    let copyBuffer : DataPoint[] = Array.zeroCreate model.GaussianProcess.ObservedDataPoints.Count 
+    model.GaussianProcess.ObservedDataPoints.CopyTo(copyBuffer) |> ignore
+
     let result : ModelResult = 
         {
-            ObservedDataPoints = model.GaussianProcess.ObservedDataPoints.ToList() 
+            ObservedDataPoints = copyBuffer.ToList() 
             AcquisitionResults = acquisitionResults.ToList()
             PredictionResults  = predictions.ToList() 
         }
+
+    intermediateResults.Add({ Result = result; NextPoint = nextPoint; Iteration = iteration })
 
     // Add the point to the model if it already hasn't been added.
     if model.GaussianProcess.ObservedDataPoints.Any(fun d -> d.X = nextPoint) then ()
@@ -566,7 +583,7 @@ seq { 0..(iterations - 1) } // n ∈ [0, iterations)
 
 Using F# for this project has been nothing short of **awesome**! After working on these submissions, I am usually left questioning why I don't use F# more often. Even though I didn't use the plethora of features the language has to offer, I lucidly accomplished what I intended to set out to accomplish; I believe the ease with which I was able to get things done is testament to strength of the language that keeps me coming back for more! 
 
-Domain Modeling using Discriminated Unions and Record Types, Pattern Matching and Partial Application are the 3 of my favorite features I had the most fun using. My favorite functional programming concept is one of the core ones: how composing functions with other functions is a simple yet powerful foundation to build complex features on. 
+Domain Modeling using Discriminated Unions and Record Types, Pattern Matching and Partial Application are the 3 of my favorite features I had the most fun using. My favorite functional programming concept is one of the core ones: how composing functions with other functions is a simple yet powerful foundation to build complex features on.
 
 As always, I am **super** open to feedback as to how I have made use of F# developing this project and so, if anyone has suggestions of how I could developed this any better, I am all ears! 
 
