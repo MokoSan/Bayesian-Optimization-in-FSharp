@@ -78,7 +78,7 @@ let chartResult (result : ModelResult) (nextPoint : Nullable<double>) (title : s
     grid
 
 
-let chartAllResults (results : OptimaResults) : GenericChart.GenericChart seq =
+let chartAllResults (results : OptimaResult) : GenericChart.GenericChart seq =
     let intermediateCharts : GenericChart.GenericChart seq = 
         results.ExplorationResults.IntermediateResults
         |> Seq.map(fun i -> (

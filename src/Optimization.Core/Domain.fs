@@ -59,7 +59,7 @@ and Goal =
     | Min
 
 // Results.
-and DataPoint         = { X : double; Y : double }
+and DataPoint        = { X : double; Y : double }
 and PredictionResult =
     { 
         Input      : double
@@ -74,12 +74,18 @@ type ModelResult =
         AcquisitionResults : IReadOnlyList<AcquisitionFunctionResult>
         PredictionResults  : IReadOnlyList<PredictionResult>
     }
+and OptimizationRequest       =
+    {
+        Model      : GaussianModel
+        Goal       : Goal
+        Iterations : int
+    }
 and ExplorationResults  =
     {
         IntermediateResults : IReadOnlyList<IntermediateResult> 
         FinalResult         : ModelResult
     }
-and OptimaResults       = 
+and OptimaResult        = 
     {
         ExplorationResults : ExplorationResults
         Optima             : DataPoint

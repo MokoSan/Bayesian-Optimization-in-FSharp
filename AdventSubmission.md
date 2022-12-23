@@ -4,15 +4,11 @@
 
 ## Introduction
 
-// TODO: Add Fit and Prediction math equations. 
-
-For my 6th F# Advent submission (6 years in a row!!), I worked on combining the lessons I learnt from my last 2 submissions: [2020: Bayesian Inference in FSharp](http://bit.ly/3hhhRjq) and [2021: Perf Avore: A Performance Analysis and Monitoring Tool in FSharp](https://github.com/MokoSan/PerfAvore/blob/main/AdventSubmission.md#perf-avore-a-performance-analysis-and-monitoring-tool-in-fsharp) to develop a Bayesian Optimization algorithm in F# to solve global optimization problems for a single variable. The Bayesian Optimization algorithm is compatible with complex black-box objective functions such as those dictated by the results of profiles via Event Tracing for Windows (ETW), a Windows profiling mechanism for troubleshooting and diagnostics, in an effort to discern the best parameters to use based on the specified workload or process. In this submission, I plan to demonstrate how I developed and applied the Bayesian Optimization algorithm to various experiments to obtain the best parameters and highlight how I made use of F#'s functional features. In terms of using F#, I have had a fabulous experience, as always! I have expounded on this [here](#experience-developing-in-fsharp).
-
-If some or all parts of the aforementioned aspects of the introduction so far seem cryptic, fret not as I plan to cover these topics in detail. The intended audience of this submission is any developer, data scientist or performance engineer interested in how the Bayesian Optimization algorithm is implemented in a functional-first way.
+For my 6th F# Advent submission (6 years in a row!!), I worked on combining the lessons I learnt from my last 2 submissions: [2020: Bayesian Inference in FSharp](http://bit.ly/3hhhRjq) and [2021: Perf Avore: A Performance Analysis and Monitoring Tool in FSharp](https://github.com/MokoSan/PerfAvore/blob/main/AdventSubmission.md#perf-avore-a-performance-analysis-and-monitoring-tool-in-fsharp) to develop a Bayesian Optimization algorithm in F# to solve global optimization problems for a single variable. The Bayesian Optimization algorithm is compatible with complex black-box objective functions and are used an effort to discern the best parameters to use based on the specified workload or process. In this submission, I plan to demonstrate how I developed and applied the Bayesian Optimization algorithm to various experiments including one making use of Event Tracing for Windows (ETW) profiles to obtain the best parameters and highlight how I made use of F#'s functional features. In terms of using F#, I have had a fabulous experience, as always! I have expounded on this [here](#experience-developing-in-fsharp).
 
 ## Goals
 
-To be concrete, the 3 main goals of this submission are:
+To kick things off and to be concrete about the objectives of this submission, the 3 main goals are:
 
 1. [To Describe Bayesian Optimization](#bayesian-optimization). 
 2. [Present the Multiple Applications of the Bayesian Optimization from Simple to more Complex](#experiments):
@@ -22,21 +18,17 @@ To be concrete, the 3 main goals of this submission are:
       1. [Give a short primer on ETW Profiling.](#event-tracing-for-windows-etw-primer)
 3. [Describe the Implementation of the Bayesian Optimization Algorithm and Infrastructure](#implementation-of-bayesian-optimization-in-fsharp)
 
+If some or all parts of the aforementioned aspects of the introduction and goals so far seem cryptic, fret not as I plan to cover these topics in detail. The intended audience of this submission is any developer, data scientist or performance engineer interested in how the Bayesian Optimization algorithm is implemented in a functional-first way.
+
 ## Bayesian Optimization
 
-The goal of any mathematical optimization function is the selection of the best element vis-à-vis some criterion known as the objective function from a number of available alternatives; the best element or optima here can be either the one that minimizes the criterion or maximizes it. Mathematically, this can expressed as:
+The goal of any mathematical optimization function is the selection of the "best" element vis-à-vis some criterion known as the objective function from a number of available alternatives; the best element also known as the **optima** here can be either the one that minimizes the criterion or maximizes it. 
+
+Mathematically, this can expressed as:
 
 $$ \arg \max_{x} f(x) $$
 
-or finding the argument $x$ that maximizes (minimization is just the negative of maximization) the function, $f(x)$ known more generally as the __optima__. The "direction" of the optimization i.e. whether we are minimizing or maximizing can be modeled as "Goal" such as:
-
-```fsharp
-// src/Optimization.Core/Domain.fs
-
-type Goal =
-    | Max
-    | Min
-```
+or finding the value of $x$ that maximizes (or minimization is just the negative of maximization) the function, $f(x)$. The **goal** of the optimization i.e. whether we are minimizing or maximizing. 
 
 The way I understood this algorithm was through a [socratic approach](https://en.wikipedia.org/wiki/Socratic_method) and here are the questions I had when I first started that I gradually answered:
 
@@ -68,7 +60,7 @@ Diagrammatically,
 
 The efficiency of the Bayesian Optimization algorithm stems from the use of Bayes Theorem to direct the search of the global optima by updating prior beliefs about the state of the objective function in light of new observations made by sampling or choosing the next point to evaluate as a potential candidate of the optima. For those new to the world of Bayes Theorem, I have written up a summary that can be found [here](https://nbviewer.org/github/MokoSan/FSharpAdvent_2020/blob/main/BayesianInferenceInF%23.ipynb#Bayes-Theorem) as a part of my previous advent submission. 
 
-To elaborate just a bit more here (there is a section below under [Gaussian Processes](#gaussian-processes) that covers the model most commonly used for this purpose of approximating the objective function), we choose a surrogate model that helps us with approximating the objective function that's initialized based on some prior information and is updated as and when we sample or observe new data points and with each subsequent iteration, we are constructing a posterior distribution that is more closely representative of the actual objective function whose form can be an unknown.
+To elaborate just a bit more here (there is a section below under [Gaussian Processes](#gaussian-processes) that covers the model most commonly used for this purpose of approximating the objective function), we choose a surrogate model that helps us with approximating the objective function that's initialized based on some prior information and is updated as and when we sample or observe new data points. Subsequently with each iteration, we construct a posterior distribution that is incorporative of the previously observed data points with the expectation that over time it more closely represents the actual objective function which, as mentioned before, can be a black-box function.
 
 ### What are some of the disadvantages of the Bayesian Optimization Algorithm?
 
@@ -81,6 +73,8 @@ Some disadvantages include:
 2. __Model Estimation Takes Time__: Getting the surrogate model to a point where it is behaving like a reasonable approximation of the true objective function can take quite a few iterations, which implies more time spent to get the result. 
 3. __Naive Implementation Isn't Parallelizable By Default__: We need to add more complexity to the model to be able to parallelize the algorithm.
 
+Now that I have somewhat explained the algorithm, the next steps are to try to explain how 
+
 ### What are the Inputs of the Model To Get A Basic Run Going?
 
 1. __Kernel Parameters For the Squared Exponential Kernel: Length Scale and Variance__: The length controls the smoothness between the points while the Variance controls the vertical amplitude. A more comprehensive explanation can be found [here](https://peterroelants.github.io/posts/gaussian-process-kernels/#Exponentiated-quadratic-kernel) but in a nutshell, the length scale determines the length of the 'wiggles' in your function and the variance determines how far out the function can fluctuate.
@@ -90,7 +84,7 @@ Some disadvantages include:
 ```fsharp 
 // src/Optimization.Core/Model.fs
 
-let inputs : double list = seq { for i in 0 .. resolution do i }
+let inputs : double list = seq { for i in 0 .. (resolution - 1) do i }
                            |> Seq.map(fun idx -> min + double idx * (max - min) / (double resolution - 1.))
                            |> Seq.toList
 ```
@@ -229,7 +223,7 @@ let optima   : OptimaResults = findOptima model Goal.Min iterations
 printfn "Optima: Simple Workload Time is minimized when the input is %A at %A seconds" optima.Optima.X optima.Optima.Y
 ```
 
-The result was: ``Optima: Simple Workload Time is minimized when the input is 1.032064128 at 0.151 seconds``.
+The result was: ``Optima: Simple Workload Time is minimized when the input is 1.372745491 at 0.13 seconds``.
 
 A gif of the algorithm is:
 
@@ -314,8 +308,6 @@ pathsToTraces
 ```
 
 and confirmed that we did detect the minima:
-
-``Optima: GC Pause Time Percentage is minimized when the input is 12.0 at 2.51148003``.
 
 | Heap Count | Percentage Pause Time In GC |
 | ---------- | --------------------------- |

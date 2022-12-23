@@ -8,12 +8,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Model.fs" />
     <Compile Include="Surrogate.fs" />
     <Compile Include="Kernel.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.3.2" />
     <PackageReference Include="NUnit" Version="3.13.3" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.2.1" />

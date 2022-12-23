@@ -106,7 +106,7 @@ let createModel (gaussianProcess     : GaussianProcess)
                 (max                 : double)
                 (resolution          : int) : GaussianModel = 
 
-    let inputs : double list = seq { for i in 0 .. resolution do i }
+    let inputs : double list = seq { for i in 0 .. (resolution-1) do i }
                                |> Seq.map(fun idx -> min + double idx * (max - min) / (double resolution - 1.))
                                |> Seq.toList
 
@@ -117,8 +117,9 @@ let createModel (gaussianProcess     : GaussianProcess)
         Inputs              = inputs 
     }
 
-let explore (model : GaussianModel) (goal : Goal) (iterations : int) : ExplorationResults  =
+let explore (request: OptimizationRequest) : ExplorationResults  =
 
+    let model : GaussianModel = request.Model 
     let applyFitToModel : (double -> unit) = fitToModel model
         
     // Add the first and last points to the model to kick things off.
@@ -130,10 +131,10 @@ let explore (model : GaussianModel) (goal : Goal) (iterations : int) : Explorati
     let applyAcquisitionFunction (predictionResult : PredictionResult) : AcquisitionFunctionResult =
         match model.AcquisitionFunction with
         | ExpectedImprovement ->
-            expectedImprovement { GaussianProcess = model.GaussianProcess; PredictionResult = predictionResult; Goal = goal }
+            expectedImprovement { GaussianProcess = model.GaussianProcess; PredictionResult = predictionResult; Goal = request.Goal }
 
     // Iterate with each step to find the most optimum next point.
-    seq { 0..(iterations - 1) }
+    seq { 0..(request.Iterations - 1) }
     |> Seq.iter(fun iteration -> (
 
         // Select next point to sample via the surrogate function i.e. estimation of the objective that maximizes the acquisition function.
@@ -174,10 +175,10 @@ let explore (model : GaussianModel) (goal : Goal) (iterations : int) : Explorati
         FinalResult         = finalResult
     }
 
-let findOptima (model : GaussianModel) (goal : Goal) (iterations : int) : OptimaResults = 
-    let explorationResults : ExplorationResults = explore model goal iterations
+let findOptima (request : OptimizationRequest) : OptimaResult = 
+    let explorationResults : ExplorationResults = explore request
     let optima = 
-        match goal with
+        match request.Goal with
         | Goal.Max -> explorationResults.FinalResult.ObservedDataPoints.MaxBy(fun o -> o.Y)
         | Goal.Min -> explorationResults.FinalResult.ObservedDataPoints.MinBy(fun o -> o.Y)
     {

@@ -40,8 +40,8 @@ let getHighMemoryBurstyAllocationsModel() : GaussianModel =
     let queryProcessObjectiveFunction : ObjectiveFunction = QueryProcessByTraceLog queryProcessByTraceLog
     createModelWithDiscreteInputs gaussianProcess queryProcessObjectiveFunction AcquisitionFunction.ExpectedImprovement 1 System.Environment.ProcessorCount resolution
 
-let model    : GaussianModel      = getHighMemoryBurstyAllocationsModel()
-let optima   : OptimaResults      = findOptima model Goal.Min iterations
+let model    : GaussianModel = getHighMemoryBurstyAllocationsModel()
+let optima   : OptimaResult  = findOptima { Model = model; Goal = Goal.Min; Iterations = iterations }
 printfn "Optima: GC Pause Time Percentage is minimized when the input is %A at %A" optima.Optima.X optima.Optima.Y
 
 let charts : GenericChart.GenericChart seq = chartAllResults optima
