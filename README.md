@@ -96,6 +96,6 @@ Now that a basic definition, reason and other preliminary questions and answers 
 10. Clean up main logic.
    1. Possibly add computation expressions.
    2. Possibly add ROP-esque behavior.
-11. Finish writing the article.
+11. ~~Finish writing the article.~~
 12. Early Stopping.
 13. Abstract behavior of the Observation Points.
