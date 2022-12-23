@@ -10,17 +10,12 @@ let EXPLORATION_PARAMETER : double = 0.01
 let expectedImprovement (parameters : AcquisitionFunctionRequest) : AcquisitionFunctionResult =
 
     let gaussianProcess : GaussianProcess = parameters.GaussianProcess
-
-    let optimumValue : double =
-        match parameters.Goal with 
-        | Goal.Max -> gaussianProcess.ObservedDataPoints.Max(fun l -> l.Y)
-        | Goal.Min -> gaussianProcess.ObservedDataPoints.Min(fun l -> l.Y)
-
-    let baseResult : AcquisitionFunctionResult = { Input = parameters.PredictionResult.Input; AcquisitionScore = 0. }
+    let optimumValue    : double = gaussianProcess.ObservedDataPoints.Optima
+    let baseResult      : AcquisitionFunctionResult = { Input = parameters.PredictionResult.Input; AcquisitionScore = 0. }
 
     let predictionResult : PredictionResult = parameters.PredictionResult
 
-    if gaussianProcess.ObservedDataPoints.Any(fun d -> d.X = predictionResult.Input) then baseResult 
+    if gaussianProcess.ObservedDataPoints.Contains predictionResult.Input then baseResult 
     else
         let Δ : double = predictionResult.Mean - optimumValue - EXPLORATION_PARAMETER 
         let σ : double = (predictionResult.UpperBound - predictionResult.LowerBound) / 2.

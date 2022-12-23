@@ -14,7 +14,8 @@ let iterations : int = System.Environment.ProcessorCount
 let resolution : int = System.Environment.ProcessorCount
 
 let getHighMemoryBurstyAllocationsModel() : GaussianModel =
-    let gaussianProcess : GaussianProcess = createProcessWithSquaredExponentialKernel { LengthScale = 0.1;  Variance = 1. }
+    let goal : Goal = Goal.Min
+    let gaussianProcess : GaussianProcess = createProcessWithSquaredExponentialKernel { LengthScale = 0.1;  Variance = 1. } goal 
 
     let queryProcessByTraceLog : QueryProcessInfoByTraceLog = 
         { 

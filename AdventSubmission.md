@@ -99,7 +99,7 @@ The idea here is to use a higher resolution where precision is of paramount impo
 
 3. __Iterations__: The number of iterations the Bayesian Optimization Algorithm should run for. The more the better, however, we'd be wasting cycles if we have already reached the maxima and are continuing to iterate; this can be curtailed by early stopping.
 
-### How Do I Interpret the Charts of the Algorithm Below? 
+### How Do I Interpret the Charts of the Algorithm Below?
 
 An example of a chart the algorithm is:
 
@@ -134,7 +134,6 @@ let resolution : int = 20_000
 
 // Creating the Model.
 let gaussianModelForSin() : GaussianModel =
-    let gaussianModelForSin() : GaussianModel =
     let squaredExponentialKernelParameters : SquaredExponentialKernelParameters = { LengthScale = 1.; Variance = 1. }
     let gaussianProcess : GaussianProcess =  createProcessWithSquaredExponentialKernel squaredExponentialKernelParameters
     let sinObjectiveFunction : ObjectiveFunction = QueryContinuousFunction Trig.Sin

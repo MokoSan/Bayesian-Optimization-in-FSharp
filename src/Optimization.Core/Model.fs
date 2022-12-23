@@ -15,7 +15,7 @@ let DEFAULT_EXPLORATION_PARAMETER : double = 0.01
 let fitToModel (model : GaussianModel) (input : double) : unit =
 
     // If the data point has already been explored, don't spend cycles doing it again.
-    if model.GaussianProcess.ObservedDataPoints.Any(fun d -> d.X = input) then ()
+    if model.GaussianProcess.ObservedDataPoints.Contains input then ()
     else
         let result : double = 
             match model.ObjectiveFunction with
@@ -26,7 +26,7 @@ let fitToModel (model : GaussianModel) (input : double) : unit =
         let matchedKernel : double -> double -> double = getKernelFunction model
 
         let dataPoint : DataPoint = { X = input; Y = result } 
-        model.GaussianProcess.ObservedDataPoints.Add dataPoint 
+        model.GaussianProcess.ObservedDataPoints.Add dataPoint
 
         let size                            : int = model.GaussianProcess.ObservedDataPoints.Count
         let mutable updatedCovarianceMatrix : Matrix<double> = Matrix<double>.Build.Dense(size, size)
@@ -36,7 +36,7 @@ let fitToModel (model : GaussianModel) (input : double) : unit =
                 updatedCovarianceMatrix[rowIdx, columnIdx] <- model.GaussianProcess.CovarianceMatrix.[rowIdx, columnIdx]
 
         for iteratorIdx in 0..(size - 1) do
-            let modelValueAtIndex : double = model.GaussianProcess.ObservedDataPoints.[iteratorIdx].X
+            let modelValueAtIndex : double = model.GaussianProcess.ObservedDataPoints.Observations.[iteratorIdx].X
             let value             : double = matchedKernel modelValueAtIndex dataPoint.X 
             updatedCovarianceMatrix[iteratorIdx, size - 1] <- value
             updatedCovarianceMatrix[size - 1, iteratorIdx] <- value
@@ -50,12 +50,12 @@ let predict (model: GaussianModel) : IEnumerable<PredictionResult> =
         let matchedKernelFunction : (double -> double -> double) = getKernelFunction model
 
         let kStar : double[] =
-            gaussianProcess.ObservedDataPoints
+            gaussianProcess.ObservedDataPoints.Observations
                            .Select(fun dp -> matchedKernelFunction input dp.X)
                            .ToArray()
 
         let yTrain : double[] =
-            gaussianProcess.ObservedDataPoints
+            gaussianProcess.ObservedDataPoints.Observations
                            .Select(fun dp -> dp.Y)
                            .ToArray()
 
@@ -72,13 +72,12 @@ let predict (model: GaussianModel) : IEnumerable<PredictionResult> =
 
     model.Inputs.Select(fun x -> predictPoint model.GaussianProcess x)
 
-let createProcessWithSquaredExponentialKernel (squaredExponentialKernelParameters: SquaredExponentialKernelParameters) : GaussianProcess =
+let createProcessWithSquaredExponentialKernel (squaredExponentialKernelParameters: SquaredExponentialKernelParameters) (goal : Goal) : GaussianProcess =
     { 
         KernelFunction     = SquaredExponentialKernel squaredExponentialKernelParameters 
-        ObservedDataPoints = List<DataPoint>()
+        ObservedDataPoints = ObservationDataPoints(goal)
         CovarianceMatrix   = Matrix<double>.Build.Dense(1, 1)
     }
-
 
 let createModelWithDiscreteInputs (gaussianProcess     : GaussianProcess)
                                   (objectiveFunction   : ObjectiveFunction)
@@ -144,7 +143,7 @@ let explore (model : GaussianModel) (goal : Goal) (iterations : int) : Explorati
 
         // Copy the state of the ObservedDataPoints for this iteration.
         let copyBuffer : DataPoint[] = Array.zeroCreate model.GaussianProcess.ObservedDataPoints.Count 
-        model.GaussianProcess.ObservedDataPoints.CopyTo(copyBuffer) |> ignore
+        model.GaussianProcess.ObservedDataPoints.Observations.ToList().CopyTo(copyBuffer) |> ignore
 
         let result : ModelResult = 
             {
@@ -156,7 +155,7 @@ let explore (model : GaussianModel) (goal : Goal) (iterations : int) : Explorati
         intermediateResults.Add({ Result = result; NextPoint = nextPoint; Iteration = iteration })
 
         // Add the point to the model if it already hasn't been added.
-        if model.GaussianProcess.ObservedDataPoints.Any(fun d -> d.X = nextPoint) then ()
+        if model.GaussianProcess.ObservedDataPoints.Contains nextPoint then ()
         else applyFitToModel nextPoint
     ))
 
@@ -164,7 +163,7 @@ let explore (model : GaussianModel) (goal : Goal) (iterations : int) : Explorati
 
     let finalResult : ModelResult =
         {
-            ObservedDataPoints = model.GaussianProcess.ObservedDataPoints
+            ObservedDataPoints = model.GaussianProcess.ObservedDataPoints.Observations
             AcquisitionResults = finalPredictions.Select(fun predictionResult -> applyAcquisitionFunction predictionResult).ToList()
             PredictionResults  = finalPredictions.ToList()
         }

@@ -1,9 +1,42 @@
 ﻿[<AutoOpen>]
 module Optimization.Domain
 
+open System
 open MathNet.Numerics.LinearAlgebra
 open System.Collections.Generic
 open Microsoft.Diagnostics.Tracing.Etlx
+
+type DataPoint = { X : double; Y : double }
+type Goal =
+    | Max
+    | Min
+
+// Class that handles the optima calculation in O(1) and O(1) Contains behavior for inputs.
+[<Sealed>]
+type ObservationDataPoints (goal : Goal) = 
+    let observations         : List<DataPoint> = List<DataPoint>()
+    let distinctObservations : HashSet<double> = HashSet<double>()
+    let mutable optima : double = nan
+
+    member this.Goal with get()         : Goal                     = goal
+    member this.Observations with get() : IReadOnlyList<DataPoint> = observations
+    member this.Optima with get()       : double                   = optima
+    member this.Count with get()        : int                      = observations.Count
+
+    // When we add, compute the optima.
+    member this.Add (dataPoint : DataPoint) : unit =
+        let updateOptima : double =
+            match goal with
+            | Max -> Math.Max(dataPoint.Y, optima)
+            | Min -> Math.Min(dataPoint.Y, optima)
+
+        optima <- updateOptima
+        observations.Add dataPoint           |> ignore
+        distinctObservations.Add dataPoint.X |> ignore
+
+    // Check if the input already exists.
+    member this.Contains(input : double) : bool =
+        distinctObservations.Contains input 
 
 type GaussianModel =
     {
@@ -15,7 +48,7 @@ type GaussianModel =
 and GaussianProcess = 
     { 
         KernelFunction           : KernelFunction
-        ObservedDataPoints       : List<DataPoint>
+        ObservedDataPoints       : ObservationDataPoints 
         mutable CovarianceMatrix : Matrix<double>
     }
 
@@ -54,12 +87,8 @@ and AcquisitionFunctionRequest =
         Goal             : Goal
     }
 and AcquisitionFunctionResult = { Input : double; AcquisitionScore: double }
-and Goal =
-    | Max
-    | Min
 
 // Results.
-and DataPoint         = { X : double; Y : double }
 and PredictionResult =
     { 
         Input      : double

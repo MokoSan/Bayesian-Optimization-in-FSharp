@@ -41,30 +41,30 @@ let test_model_sin() : GaussianModel =
     let gaussianProcess : GaussianProcess = 
         { 
             KernelFunction = SquaredExponentialKernel { LengthScale = 0.1; Variance = 1 }
-            ObservedDataPoints                 = List<DataPoint>()
+            ObservedDataPoints                 = ObservationDataPoints(Goal.Max)
             CovarianceMatrix                   = Matrix<double>.Build.Dense(1, 1)
         }
 
     let sinObjectiveFunction : ObjectiveFunction = QueryContinuousFunction Trig.Sin
-    createModel gaussianProcess sinObjectiveFunction -Math.PI Math.PI 300
+    createModel gaussianProcess sinObjectiveFunction AcquisitionFunction.ExpectedImprovement -Math.PI Math.PI 300
 
 let test_model_simpleworkload_1() : GaussianModel =
     let gaussianProcess : GaussianProcess = 
         { 
             KernelFunction = SquaredExponentialKernel { LengthScale = 0.1; Variance = 1 }
-            ObservedDataPoints       = List<DataPoint>()
+            ObservedDataPoints       = ObservationDataPoints(Goal.Min)
             CovarianceMatrix = Matrix<double>.Build.Dense(1, 1)
         }
 
     let queryProcessInfo : QueryProcessInfo = { WorkloadPath = workload; ApplyArguments = (fun input -> $"--input {input}"); } 
     let queryProcessObjectiveFunction : ObjectiveFunction = (QueryProcessByElapsedTimeInSeconds queryProcessInfo)
-    createModel gaussianProcess queryProcessObjectiveFunction 0 5 30
+    createModel gaussianProcess queryProcessObjectiveFunction AcquisitionFunction.ExpectedImprovement 0 5 30
 
 let test_model_burstyallocator() : GaussianModel =
     let gaussianProcess : GaussianProcess = 
         { 
             KernelFunction = SquaredExponentialKernel { LengthScale = 0.1; Variance = 1 }
-            ObservedDataPoints       = List<DataPoint>()
+            ObservedDataPoints       = ObservationDataPoints(Goal.Min)
             CovarianceMatrix = Matrix<double>.Build.Dense(1, 1)
         }
 
@@ -90,7 +90,7 @@ let test_model_burstyallocator() : GaussianModel =
         }
 
     let queryProcessObjectiveFunction : ObjectiveFunction = QueryProcessByTraceLog queryProcessByTraceLog
-    createModelWithDiscreteInputs gaussianProcess queryProcessObjectiveFunction 1 System.Environment.ProcessorCount 900
+    createModelWithDiscreteInputs gaussianProcess queryProcessObjectiveFunction AcquisitionFunction.ExpectedImprovement 1 System.Environment.ProcessorCount 900
 
 let model    : GaussianModel      = test_model_sin()
 let optima   : OptimaResults      = findOptima model Goal.Max 20 
