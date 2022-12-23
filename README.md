@@ -60,6 +60,10 @@ Now that a basic definition, reason and other preliminary questions and answers 
 
 ## Experiments To Highlight Use Cases
 
+1. [Sin](Experiments/Sin/Sin.ipynb)
+2. [Simple Workload](Experiments/SimpleWorkload/SimpleWorkload.ipynb)
+3. [High Memory Bursty Allocations](Experiments/HighMemoryBurstyAllocations/Program.fs)
+
 ## References
 
 1. [Gaussian Processes](http://krasserm.github.io/2018/03/19/gaussian-processes/)
