@@ -4,14 +4,16 @@
 
 ## Introduction
 
-For my 6th F# Advent submission (6 years in a row!!), I worked on combining the lessons I learnt from my last 2 submissions: [2020: Bayesian Inference in FSharp](http://bit.ly/3hhhRjq) and [2021: Perf Avore: A Performance Analysis and Monitoring Tool in FSharp](https://github.com/MokoSan/PerfAvore/blob/main/AdventSubmission.md#perf-avore-a-performance-analysis-and-monitoring-tool-in-fsharp) to develop a Bayesian Optimization algorithm in F# to solve global optimization problems for a single variable. Bayesian Optimization is an optimization algorithm compatible with complex black-box objective functions and is used an effort to discern the best parameters based on the specified workload or process. In this submission, I plan to demonstrate how I developed and applied the Bayesian Optimization algorithm to various experiments including one making use of Event Tracing for Windows (ETW) profiles to obtain the best parameters and highlight how I made use of F#'s functional features. In terms of using F#, I have had a fabulous experience, as always! I have expounded on this [here](#experience-developing-in-fsharp).
+For my 6th F# Advent submission (6 years in a row!!), I worked on combining the lessons I learnt from my last 2 submissions: [2020: Bayesian Inference in FSharp](http://bit.ly/3hhhRjq) and [2021: Perf Avore: A Performance Analysis and Monitoring Tool in FSharp](https://github.com/MokoSan/PerfAvore/blob/main/AdventSubmission.md#perf-avore-a-performance-analysis-and-monitoring-tool-in-fsharp) to develop a Bayesian Optimization algorithm in F# to solve global optimization problems for a single variable. __Bayesian Optimization__ is an iterative optimization algorithm used to find the most optimal element like any other optimization algorithm however, where it shines in comparison to others is when the criterion or objective function is a black box function. A black box function indicates the prospect of a lack of an analytic expression or known mathematical formula for the objective function and/or details about other properties for example, knowing if the derivative exists for the function so as to make use of other optimization techniques such as [Stochastic Gradient Descent](https://en.wikipedia.org/wiki/Stochastic_gradient_descent).
+
+In this submission, I plan to demonstrate how I developed and applied the Bayesian Optimization algorithm to various experiments including one making use of Event Tracing for Windows (ETW) profiles to obtain the best parameters and highlight how I made use of F#'s functional features. In terms of using F#, I have had a fabulous experience, as always! I have expounded on this [here](#experience-developing-in-fsharp).
 
 ## Motivation
 
-The motivation behind this submission is 2 fold:
+The motivation behind this submission is 2-fold:
 
 1. I have been very eagerly trying to learn about Bayesian Optimization and figured this was a perfect time to dedicate myself to fully understanding the internals by implementing the algorithm in FSharp.
-2. I am yet to find an example (if you know of one, please let me know) that naturally combines Bayesian Optimization with ETW traces to come up with optimal parameters to use. I believe the applications of this are many in the field of performance engineer and figured I create reusable components to be used.
+2. I am yet to find a library (if you know of one, please let me know) that naturally combines Bayesian Optimization with Performance Engineer in .NET to come up with optimal parameters to use. I believe the applications of this are many in the field of performance engineering and figured I create reusable components that can be leveraged by others.
 
 ## Goals
 
@@ -29,19 +31,19 @@ If some or all parts of the aforementioned aspects of the introduction and goals
 
 ## Bayesian Optimization
 
-The goal of any mathematical optimization function is the selection of the "best" element vis-à-vis some criterion known as the objective function from a number of available alternatives; the best element also known as the **optima** here can be either the one that minimizes the criterion or maximizes it. 
+The goal of any mathematical optimization function is the selection of the "best" element vis-à-vis some criterion known as the objective function from a number of available alternatives; the best element also known as the **optima** here can be either the one that minimizes or maximizes the criterion. 
 
 Mathematically, this can expressed as:
 
 $$ \arg \max_{x} f(x) $$
 
-or finding the value of $x$ that maximizes (or minimization is just the negative of maximization) the function, $f(x)$. The **goal** of the optimization i.e. whether we are minimizing or maximizing. 
+i.e., finding the value of $x$ that maximizes (minimization is just maximizing the negative of the objective and therefore, can be used interchangeably) the function, $f(x)$.
 
-The way I understood this algorithm was through a [socratic approach](https://en.wikipedia.org/wiki/Socratic_method) and here are the questions I had when I first started that I gradually answered:
+The way I understood this algorithm was through a [socratic approach](https://en.wikipedia.org/wiki/Socratic_method) and here are the questions I had when I first started diving into this topic that I gradually answered:
 
-### What is Bayesian Optimization And Why Use It?
+### Why Use Bayesian Optimization?
 
-Bayesian Optimization is an iterative optimization algorithm used to find the most optimal element like any other optimization algorithm however, where it shines in comparison to others is when the criterion or objective function is a black box function. A black box function indicates the prospect of a lack of an analytic expression or known mathematical formula for the objective function and/or details about other properties for example, knowing if the derivative exists for the function so as to make use of other optimization techniques such as [Stochastic Gradient Descent](https://en.wikipedia.org/wiki/Stochastic_gradient_descent).
+__Bayesian Optimization__ is an iterative optimization algorithm used to find the most optimal element like any other optimization algorithm however, where it shines in comparison to others is when the criterion or objective function is a black box function. A black box function indicates the prospect of a lack of an analytic expression or known mathematical formula for the objective function and/or details about other properties for example, knowing if the derivative exists for the function so as to make use of other optimization techniques such as [Stochastic Gradient Descent](https://en.wikipedia.org/wiki/Stochastic_gradient_descent).
 
 To contrast with 2 other popular optimization techniques namely, **Grid Search Optimization** and **Random Search Optimization** whose intractability and efficiency, respectively come into question, Bayesian Optimization uses information from previous iterations to get to the optima in a more computational efficient and directed based on the data.
 
@@ -52,8 +54,8 @@ To summarize, Bayesian Optimization aims to, with the fewest number of iteration
 There are 3 main components:
 
 1. __Surrogate Model__: The surrogate model is used as for approximation of the objective function where new points can be fit and predictions can be made. More details are [here](#surrogate-model).
-2. __Acquisition Function__: The acquisition function helps discerning the next point to sample per iteration. More details are [here](#acquisition-function).
-3. __Iteration Loop__: The loop that facilitates the following from 1 to some defined iteration count that does the following and at the end of the iterations, the expectation is that you'd have explored enough data points to discern as the maxima:
+2. __Acquisition Function__: The acquisition function helps discerning the next point to sample. More details are [here](#acquisition-function).
+3. __Iteration Loop__: The loop that facilitates the following:
    1. Make predictions using the surrogate model. 
    2. Based on the predictions from 1., apply the acquisition function.
    3. Identify the point that maximizes the acquisition function. 
@@ -71,14 +73,14 @@ To elaborate just a bit more here (there is a section below under [Gaussian Proc
 
 ### What are some of the disadvantages of the Bayesian Optimization Algorithm?
 
-Some disadvantages include:
-
 1. __Results Are Extremely Sensitive To Model Parameters__: Having some prior knowledge of the shape of the objective function is helpful as otherwise, choosing the wrong parameters results in a need for a higher number of iterations or sometimes convergence to the optima isn't even possible. The previous implication requires "optimization of the optimizer". Additionally, this effect is amplified with a inputs of higher dimensions i.e. you have to carefully choose the model parameters for a lot of variables. As we will see later, we need to make some reasonable choices in terms of:
    1. The Kernel Parameters.
    2. Resolution of the Initial Data or how granular our model should be in terms of data points.
    3. Number of iterations. 
 2. __Model Estimation Takes Time__: Getting the surrogate model to a point where it is behaving like a reasonable approximation of the true objective function can take quite a few iterations, which implies more time spent to get the result. 
 3. __Naive Implementation Isn't Parallelizable By Default__: We need to add more complexity to the model to be able to parallelize the algorithm.
+
+Here are some FAQs in terms of the usage of the library:
 
 ### What are the Inputs of the Model To Get A Basic Run Going?
 
@@ -121,7 +123,7 @@ In this section, I plan to go over 3 main experiments conducted using the optimi
 
 ### Experiment 1: Maximizing the ``Sin`` function between π and -π.
 
-``Sin(x)`` is a simple Trigonometric Function whose maximum value is 1 at $\frac{\pi}{2}$ if the range is between $-\pi$ and $\pi$. Since we know the analytical form of the function, this simple experiment can highlight the correctness of the algorithm (within an acceptable margin of error). A [Polyglot notebook](https://devblogs.microsoft.com/dotnet/dotnet-interactive-notebooks-is-now-polyglot-notebooks/) of this experiment can be found [here](./Experiments/Sin/Sin.ipynb). 
+``Sin(x)`` is a [Trigonometric Function](https://en.wikipedia.org/wiki/Trigonometric_functions) whose maximum value is 1 if the input is $\frac{\pi}{2}$ when the range is between $-\pi$ and $\pi$. Since we know the analytical form of the function, this simple experiment can highlight the correctness of the algorithm (within an acceptable margin of error). A [Polyglot notebook](https://devblogs.microsoft.com/dotnet/dotnet-interactive-notebooks-is-now-polyglot-notebooks/) of this experiment can be found [here](./Experiments/Sin/Sin.ipynb). 
 
 The experiment can be setup in the following way making use of the library I developed that implements the Bayesian Optimization algorithm:
 
@@ -173,11 +175,11 @@ This experiment is an example of a mathematical function being optimized. More e
 
 ### Experiment 2: Minimizing The Wall Clock Time of A Simple Command Line App
 
-The Objective Function meant to be minimized here is the wall clock time from running a C# program that sleeps for a hard-coded amount of time based on a given input. The full code is available [here](https://github.com/MokoSan/Bayesian-Optimization-in-FSharp/blob/main/src/Workloads/SimpleWorkload/Program.cs).
+The Objective Function meant to be minimized here is the wall clock time from running a C# program, our workload, that sleeps for a hard-coded amount of time based on a given input. The full code is available [here](https://github.com/MokoSan/Bayesian-Optimization-in-FSharp/blob/main/src/Workloads/SimpleWorkload/Program.cs).
 
-The gist of the trivial algorithm is the following where we sleep for the shortest amount of time if the input is between 1 and 1.5, a slightly shorter amount of time if the input is >= 1.5 but < 2.0 and the most amount of time in all other cases. The premise here is to try and see if we are able to get the optimization algorithm detect the inputs that trigger the lowest amount of sleep time and thereby, the minima of the wall clock time of the program.
+The gist of the trivial algorithm is the following where we sleep for the shortest amount of time if the input is between 1 and 1.5, a slightly shorter amount of time if the input is >= 1.5 but < 2.0 and the most amount of time in all other cases. The premise here is to try and see if we are able to get the optimization algorithm detect the inputs that trigger the lowest amount of sleep time and thereby, the minima of the wall clock time of the program in a somewhat deterministic fashion.
 
-The aforementioned logic looks something like:
+The logic looks like:
 
 ```csharp
 // src/Workloads/SimpleWorkload/Program.cs
@@ -233,7 +235,7 @@ let optima   : OptimaResults = findOptima { Model = model; Goal = Goal.Min; Iter
 printfn "Optima: Simple Workload Time is minimized when the input is %A at %A seconds" optima.Optima.X optima.Optima.Y
 ```
 
-The result was: ``Optima: Simple Workload Time is minimized when the input is 1.372745491 at 0.13 seconds``.
+The result was: ``Optima: Simple Workload Time is minimized when the input is 1.372745491 at 0.13 seconds``. This was a success as we force the main thread to sleep in the interval [1., 1.5) and the input: 1.37274591 is in that range! 
 
 A gif of the charted algorithm is:
 
@@ -621,7 +623,7 @@ let confidence : double         = Math.Abs( matchedKernelFunction input input  -
 { Mean = mu; LowerBound = mu - confidence; UpperBound = mu + confidence; Input = input }
 ```
 
-A more in-depth tutorial on the posterior calculation that leads to the prediction computation can be found [here](http://krasserm.github.io/2018/03/19/gaussian-processes/).
+A more in-depth tutorial on the posterior calculation that leads to the prediction computation can be found [here](http://krasserm.github.io/2018/03/19/gaussian-processes/). The explanation there will probably be better than any I can give and despite the seemingly complexity of the linear algebra, at the end of the day, we are applying Bayes Theorem to multivariate normally distributed variables. 
 
 #### Acquisition Function
 
