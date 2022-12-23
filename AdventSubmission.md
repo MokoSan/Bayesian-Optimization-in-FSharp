@@ -22,7 +22,7 @@ The motivation behind this submission is 2-fold:
 To kick things off and to be concrete about the objectives of this submission, the 3 main goals are:
 
 1. [To Describe Bayesian Optimization](#bayesian-optimization). 
-2. [To Present the Multiple Applications of the Bayesian Optimization Implementation from Simple to More Complex in the Form of Repeatable Experiments](#experiments):
+2. [To Present Multiple Applications of the Bayesian Optimization Implementation from Simple to More Complex in the Form of Repeatable Experiments](#experiments):
    1. [Maximizing ``Sin`` function between -π and π.](#experiment-1-maximizing-the-sin-function-between-π-and--π)
    2. [Minimizing The Wall Clock Time of A Simple Command Line App](#experiment-2-minimizing-the-wall-clock-time-of-a-simple-command-line-app): Finding the minima of the wall clock time of execution of an independent process based on the input.
    3. [Minimizing The Percent of Time Spent during Garbage Collection For a High Memory Load Case With Bursty Allocations By Varying The Number of Heaps](#experiment-3-minimizing-the-garbage-collection-gc-pause-time--by-varying-the-number-of-heaps): Finding the minima of the percent of time spent during garbage collection based on pivoting on the number of Garbage Collection Heaps or Threads using Traces obtained via Event Tracing For Windows (ETW). 
@@ -73,7 +73,7 @@ The efficiency of the Bayesian Optimization algorithm stems from the use of Baye
 
 To elaborate a bit more, (there is a section below under [Gaussian Processes](#gaussian-processes) that covers the model most commonly used for this purpose of approximating the objective function) we choose a surrogate model that helps us with approximating the objective function that's initialized based on some prior information and is updated as and when we sample or observe new data points. Subsequently with each iteration, we construct a posterior distribution that is incorporative of the previously observed data points with the expectation that over time it more closely represents the actual objective function which, as mentioned before, can be a black-box function.
 
-### What are some of the disadvantages of the Bayesian Optimization Algorithm?
+### What are Some of the Disadvantages of the Bayesian Optimization Algorithm?
 
 1. __Results Are Extremely Sensitive To Model Parameters__: Having some prior knowledge of the shape of the objective function is helpful as otherwise, choosing the wrong parameters results in a need for a higher number of iterations or sometimes convergence to the optima isn't even possible. The previous implication requires "optimization of the optimizer". Additionally, this effect is amplified with a inputs of higher dimensions i.e. you have to carefully choose the model parameters for a lot of variables. As we will see later, we need to make some reasonable choices in terms of:
    1. The Kernel Parameters.
