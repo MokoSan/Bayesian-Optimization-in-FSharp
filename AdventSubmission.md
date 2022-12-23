@@ -6,6 +6,13 @@
 
 For my 6th F# Advent submission (6 years in a row!!), I worked on combining the lessons I learnt from my last 2 submissions: [2020: Bayesian Inference in FSharp](http://bit.ly/3hhhRjq) and [2021: Perf Avore: A Performance Analysis and Monitoring Tool in FSharp](https://github.com/MokoSan/PerfAvore/blob/main/AdventSubmission.md#perf-avore-a-performance-analysis-and-monitoring-tool-in-fsharp) to develop a Bayesian Optimization algorithm in F# to solve global optimization problems for a single variable. Bayesian Optimization is an optimization algorithm compatible with complex black-box objective functions and is used an effort to discern the best parameters based on the specified workload or process. In this submission, I plan to demonstrate how I developed and applied the Bayesian Optimization algorithm to various experiments including one making use of Event Tracing for Windows (ETW) profiles to obtain the best parameters and highlight how I made use of F#'s functional features. In terms of using F#, I have had a fabulous experience, as always! I have expounded on this [here](#experience-developing-in-fsharp).
 
+## Motivation
+
+The motivation behind this submission is 2 fold:
+
+1. I have been very eagerly trying to learn about Bayesian Optimization and figured this was a perfect time to dedicate myself to fully understanding the internals by implementing the algorithm in FSharp.
+2. I am yet to find an example (if you know of one, please let me know) that naturally combines Bayesian Optimization with ETW traces to come up with optimal parameters to use. I believe the applications of this are many in the field of performance engineer and figured I create reusable components to be used.
+
 ## Goals
 
 To kick things off and to be concrete about the objectives of this submission, the 3 main goals are:
@@ -73,8 +80,6 @@ Some disadvantages include:
 2. __Model Estimation Takes Time__: Getting the surrogate model to a point where it is behaving like a reasonable approximation of the true objective function can take quite a few iterations, which implies more time spent to get the result. 
 3. __Naive Implementation Isn't Parallelizable By Default__: We need to add more complexity to the model to be able to parallelize the algorithm.
 
-Now that I have somewhat explained the algorithm, the next steps are to try to explain how 
-
 ### What are the Inputs of the Model To Get A Basic Run Going?
 
 1. __Kernel Parameters For the Squared Exponential Kernel: Length Scale and Variance__: The length controls the smoothness between the points while the Variance controls the vertical amplitude. A more comprehensive explanation can be found [here](https://peterroelants.github.io/posts/gaussian-process-kernels/#Exponentiated-quadratic-kernel) but in a nutshell, the length scale determines the length of the 'wiggles' in your function and the variance determines how far out the function can fluctuate.
@@ -92,6 +97,8 @@ let inputs : double list = seq { for i in 0 .. (resolution - 1) do i }
 The idea here is to use a higher resolution where precision is of paramount importance i.e. you can guess that the optima will require many digits after the decimal point. 
 
 3. __Iterations__: The number of iterations the Bayesian Optimization Algorithm should run for i.e. the number of times the objective function will be computed by running the workload to get to the optima. The more the better, however, we'd be wasting cycles if we have already reached the maxima and are continuing to iterate; this can be curtailed by early stopping.
+
+4. __Range__: The Min and Max whose inclusive interval we want to optimize on.
 
 ### How Do I Interpret the Charts of the Algorithm Below? 
 
@@ -397,11 +404,80 @@ The example in [Experiment 3](#experiment-3-minimizing-the-garbage-collection-gc
 
 ### Implementation Of Bayesian Optimization In FSharp
 
-The three components, as mentioned [above](#what-are-the-components-of-a-bayesian-optimization-algorithm), of the Bayesian Optimization algorithm are the **Surrogate Model**, **Acquisition Function** and the **Iteration Loop**. To reiterate, the surrogate model, as hinted to by the name, is a model that serves as an approximation of the objective function while the acquisition function guides where the algorithm should search next where the best observation is most likely to reach the global optima and the iteration loop facilitates the maximization of the acquisition function on the basis of the predictions made by the surrogate model thereby presenting the next point to sample. 
+The three components, as mentioned [above](#what-are-the-components-of-a-bayesian-optimization-algorithm), of the Bayesian Optimization algorithm are the **Surrogate Model**, **Acquisition Function** and the **Iteration Loop**. To reiterate, the surrogate model, as hinted to by the name, is a model that serves as an approximation of the objective function while the acquisition function guides where the algorithm should search next where the best observation is most likely to reach the global optima and the iteration loop facilitates the maximization of the acquisition function on the basis of the predictions made by the surrogate model thereby presenting the next point to sample.
+
+To quickly go over the preliminary parts of the domain, we first have a concept of a __Goal__ which, is implemented as a Discriminated Union of a choice of minimization or maximization of the objective function.
+
+```fsharp
+// src/Optimization.Core/Domain.fs
+
+type Goal =
+    | Max
+    | Min
+```
+
+Next, the Observed Data Points by way of which we deduce the optima is defined as a record type: 
+
+```fsharp
+// src/Optimization.Core/Domain.fs
+
+type DataPoint = { X : double; Y : double }
+```
+
+Our main function that kicks off the optimization is modeled in the following way:
+
+```fsharp
+// src/Optimization.Core/Model.fs
+
+let findOptima (request : OptimizationRequest) : OptimaResult = 
+    // Optimize!
+```
+
+where ``OptimizationRequest`` and ``OptimaResult`` are defined as:
+
+```fsharp
+// src/Optimization.Core/Domain.fs
+
+type OptimizationRequest       =
+    {
+        Model      : GaussianModel
+        Goal       : Goal
+        Iterations : int
+    }
+
+type OptimaResult        = 
+    {
+        ExplorationResults : ExplorationResults
+        Optima             : DataPoint
+    }
+```
+
+Since are using Gaussian Processes for this implementation, a ``Gaussian Model`` seemed apt in terms of nomenclature and is defined as:
+
+```fsharp
+type GaussianModel =
+    {
+        GaussianProcess     : GaussianProcess
+        ObjectiveFunction   : ObjectiveFunction
+        Inputs              : double list
+        AcquisitionFunction : AcquisitionFunction
+    }
+```
+
+Now that we have set the stage of the definitions of the major components of the model, we can get more specific. 
 
 #### Surrogate Model
 
-A number of techniques can be used to represent the surrogate model however, one of the most popular ways to do so is to use __Gaussian Processes__.
+A number of techniques can be used to represent the surrogate model however, one of the most popular ways to do so is to use __Gaussian Processes__ that are defined as the following to be used in the ``GaussianModel`` record type above:
+
+```fsharp
+and GaussianProcess = 
+    { 
+        KernelFunction           : KernelFunction
+        ObservedDataPoints       : List<DataPoint>
+        mutable CovarianceMatrix : Matrix<double>
+    }
+```
 
 ##### Gaussian Processes
 
@@ -442,6 +518,28 @@ With:
  - $σ^2$ the overall variance (is also known as amplitude or the vertical variance).
  - $\ell$ the length scale gives us the smoothness between the two points.
 
+To allow more kernels to be defined, we define the ``KernelFunction`` type as:
+
+```fsharp
+//src/Optimization.Core/Domain.fs
+
+// Kernel Function.
+and KernelFunction =
+    | SquaredExponentialKernel of SquaredExponentialKernelParameters
+```
+
+where we have the ability to add more cases. We pattern match on the type of kernel in a separate function and use partial application to make use of the kernel function as and when the parameters are applied. 
+
+```fsharp
+// src/Optimization.Core/Kernel.fs
+
+// I ♥ Partial Application.
+let getKernelFunction (model : GaussianModel) : double -> double -> double =
+    match model.GaussianProcess.KernelFunction with
+    | SquaredExponentialKernel parameters ->
+        squaredExponentialKernelCompute parameters
+```
+
 ###### Fitting the Gaussian Process Model 
 
 Fitting the Gaussian Process Model entails we reconstruct the Covariance Matrix with the latest data by using the specified Kernel. The code for this looks like the following (cleaned up for simplicity) where we compute the output from the objective function, add the new point to the observations and reconstruct the covariance matrix by way of the kernel function:
@@ -449,7 +547,7 @@ Fitting the Gaussian Process Model entails we reconstruct the Covariance Matrix 
 ```fsharp
 // src/Optimization.Core/Model.fs
 
-let result : double = 
+let result : double =
     match model.ObjectiveFunction with
     | QueryContinuousFunction queryFunction               -> queryFunction input
     | QueryProcessByElapsedTimeInSeconds queryProcessInfo -> queryProcessByElapsedTimeInSeconds queryProcessInfo input
@@ -480,7 +578,21 @@ updatedCovarianceMatrix[size - 1,  size - 1] <- matchedKernel dataPoint.X data
 
 ###### Making Prediction Using the Gaussian Process Model
 
-Using the Gaussian Process Model to make predictions involves the following for each point registered by the gaussian process and the output is the mean and the level of uncertainty (in a very Bayesian fashion rather than a single point). The Linear Algebra involved is that of computing the posterior using the observed data and inputs that the model was initialized with i.e. the priors which, in our case were set based on the range and the resolution:
+Using the Gaussian Process Model to make predictions or generating the posterior involves the following for each point registered by the gaussian process and the output is the mean and the level of uncertainty (in a very Bayesian fashion rather than a single point). The output of the prediction is modeled in the following way:
+
+```fsharp
+// src/Optimization.Core/Domain.fs
+
+type PredictionResult =
+    { 
+        Input      : double
+        Mean       : double
+        LowerBound : double
+        UpperBound : double
+    }
+```
+
+The Linear Algebra involved is that of computing the posterior using the observed data and inputs that the model was initialized with i.e. the priors which, in our case were set based on the range and the resolution:
 
 ```fsharp
 // src/Optimization.Core/Model.fs
@@ -513,12 +625,27 @@ A more in-depth tutorial on the posterior calculation that leads to the predicti
 
 #### Acquisition Function
 
-Where to search next is dictated by the acquisition function. This function conducts a trade off between "Exploitation and Exploration". __Exploitation__ means we are sampling or choosing points where the surrogate model is know to produce high objective function result. __Exploration__ means we are sampling or choosing points we haven't explored before or where the prediction uncertainty is high. The point where the acquisition function is maximized is the next point to sample.
+Where to sample next within the specified range is dictated by the acquisition function. This function conducts a trade off between "Exploitation and Exploration". __Exploitation__ means we are sampling or choosing points where the surrogate model is know to produce high objective function result. __Exploration__ means we are sampling or choosing points we haven't explored before or where the prediction uncertainty is high. The point where the acquisition function is maximized is the next point to sample. 
 
 A very popular acquisition function is called "Expected Improvement (EI)" and is given by:
 
 $$ \operatorname{EI}(\mathbf{x}) = \mathbb{E}\max(f(\mathbf{x}) - f(\mathbf{x}^+), 0)\tag{1} $$
 
+and can be modeled as:
+
+```fsharp
+// src/Optimization.Core/AcquisitionFunction.fs
+
+type AcquisitionFunction = 
+    | ExpectedImprovement
+and AcquisitionFunctionRequest =
+    {
+        GaussianProcess  : GaussianProcess
+        PredictionResult : PredictionResult
+        Goal             : Goal
+    }
+and AcquisitionFunctionResult = { Input : double; AcquisitionScore: double }
+```
  and the analytic solution using a Gaussian Process of this is as follows:
 
 ```fsharp
@@ -532,7 +659,7 @@ let explorationFactor   : double = σ * Normal.PDF(0, 1, z)
 let expectedImprovement : double = exploitationFactor + explorationFactor
 ```
 
-The idea here is that based on the predicted result from the surrogate function, we compute an exploitation and exploration factor and sum the two. The mean, upper bound and lower bound are all results from the Gaussian Process. 
+The idea here is that based on the predicted result from the surrogate function, we compute an exploitation and exploration factor and sum the two to give us the most statistically sound place to sample next balancing both exploitation and exploration.
 
 #### The Bayesian Optimization Loop 
 
@@ -543,7 +670,7 @@ As described above, in the bayesian optimization loop we do the following:
 3. Identify the point that maximizes the acquisition function. 
 4. Update the model with the new data point.
 
-In addition to these steps, we are also keeping track of the intermediate steps of the calculation (this detail has been omitted below for the sake of simplicity).
+In addition to these steps, we are also keeping track of the intermediate steps of the calculation. 
 
 ```fsharp
 // src/Optimization.Core/Model.fs
