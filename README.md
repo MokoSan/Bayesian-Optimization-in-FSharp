@@ -60,9 +60,9 @@ Now that a basic definition, reason and other preliminary questions and answers 
 
 ## Experiments To Highlight Use Cases
 
-1. [Sin](Experiments/Sin/Sin.ipynb)
-2. [Simple Workload](Experiments/SimpleWorkload/SimpleWorkload.ipynb)
-3. [High Memory Bursty Allocations](Experiments/HighMemoryBurstyAllocations/Program.fs)
+1. [Maximizing ``Sin`` function between -π and π.](Experiments/Sin/Sin.ipynb)
+2. [Minimizing The Wall Clock Time of A Simple Command Line App](Experiments/SimpleWorkload/SimpleWorkload.ipynb)
+3. [Minimizing The Percent of Time Spent during Garbage Collection For a High Memory Load Case With Bursty Allocations By Varying The Number of Heaps](Experiments/HighMemoryBurstyAllocations/Program.fs)
 
 ## References
 
