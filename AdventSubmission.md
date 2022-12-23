@@ -704,6 +704,12 @@ seq { 0..(request.Iterations - 1) }
 ))
 ```
 
+And there we have it - at a high level how the Bayesian Optimization algorithm is implemented. There is of course room for significant amount of improvement here such as:
+
+1. Adding early stopping if we aren't making much progress with each subsequent iteration.
+2. Adding the ability to optimize multiple variables.
+3. Adding report generation based on the intermediate results.
+
 ## Experience Developing in FSharp
 
 <img src="./resources/IloveFSharp.png" width="500" height="300">
